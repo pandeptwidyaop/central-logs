@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"central-logs/internal/database"
+	"central-logs/internal/database/migrations"
 	"central-logs/internal/handlers"
 	"central-logs/internal/middleware"
 	"central-logs/internal/models"
@@ -20,31 +22,8 @@ import (
 )
 
 func setupAuthTestDB(t *testing.T) *sql.DB {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
-
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			email TEXT,
-			password TEXT NOT NULL,
-			name TEXT NOT NULL,
-			role TEXT NOT NULL DEFAULT 'USER',
-			is_active INTEGER NOT NULL DEFAULT 1,
-			two_factor_secret TEXT DEFAULT '',
-			two_factor_enabled INTEGER DEFAULT 0,
-			backup_codes TEXT DEFAULT '',
-			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-		)
-	`)
-	if err != nil {
-		t.Fatalf("Failed to create users table: %v", err)
-	}
-
+	db := database.NewTestDB(t)
+	database.RunTestMigrations(t, db, migrations.GetAll())
 	return db
 }
 

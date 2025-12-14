@@ -100,7 +100,6 @@ func TestUserHandler_CreateUser_Success(t *testing.T) {
 
 	reqBody := map[string]interface{}{
 		"username": "newuser",
-		"email":    "newuser@example.com",
 		"password": "password123",
 		"name":     "New User",
 		"role":     "USER",
@@ -122,8 +121,8 @@ func TestUserHandler_CreateUser_Success(t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 	json.Unmarshal(body, &createdUser)
 
-	if createdUser.Email != "newuser@example.com" {
-		t.Errorf("Expected email newuser@example.com, got %s", createdUser.Email)
+	if createdUser.Username != "newuser" {
+		t.Errorf("Expected username newuser, got %s", createdUser.Username)
 	}
 
 	if createdUser.Name != "New User" {
@@ -170,20 +169,20 @@ func TestUserHandler_CreateUser_MissingFields(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		email    string
+		username string
 		password string
 		userName string
 	}{
-		{"no email", "", "password123", "Test User"},
-		{"no password", "test@example.com", "", "Test User"},
-		{"no name", "test@example.com", "password123", ""},
+		{"no username", "", "password123", "Test User"},
+		{"no password", "testuser", "", "Test User"},
+		{"no name", "testuser", "password123", ""},
 		{"all empty", "", "", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reqBody := map[string]string{
-				"email":    tt.email,
+				"username": tt.username,
 				"password": tt.password,
 				"name":     tt.userName,
 			}
@@ -214,7 +213,7 @@ func TestUserHandler_CreateUser_PasswordTooShort(t *testing.T) {
 	app.Post("/users", userHandler.CreateUser)
 
 	reqBody := map[string]string{
-		"email":    "test@example.com",
+		"username": "testuser",
 		"password": "short",
 		"name":     "Test User",
 	}
@@ -254,7 +253,7 @@ func TestUserHandler_CreateUser_EmailAlreadyExists(t *testing.T) {
 	app.Post("/users", userHandler.CreateUser)
 
 	reqBody := map[string]string{
-		"email":    "existing@example.com",
+		"username": "existing",
 		"password": "password123",
 		"name":     "New User",
 	}
@@ -283,7 +282,7 @@ func TestUserHandler_CreateUser_DefaultRole(t *testing.T) {
 	app.Post("/users", userHandler.CreateUser)
 
 	reqBody := map[string]interface{}{
-		"email":    "test@example.com",
+		"username": "testuser",
 		"password": "password123",
 		"name":     "Test User",
 		"role":     "INVALID_ROLE",
@@ -392,7 +391,6 @@ func TestUserHandler_UpdateUser_Success(t *testing.T) {
 
 	isActive := false
 	reqBody := map[string]interface{}{
-		"email":     "updated@example.com",
 		"name":      "Updated Name",
 		"role":      "ADMIN",
 		"is_active": &isActive,
@@ -413,10 +411,6 @@ func TestUserHandler_UpdateUser_Success(t *testing.T) {
 	var updatedUser models.User
 	body, _ := io.ReadAll(resp.Body)
 	json.Unmarshal(body, &updatedUser)
-
-	if updatedUser.Email != "updated@example.com" {
-		t.Errorf("Expected email updated@example.com, got %s", updatedUser.Email)
-	}
 
 	if updatedUser.Name != "Updated Name" {
 		t.Errorf("Expected name 'Updated Name', got %s", updatedUser.Name)
@@ -491,14 +485,14 @@ func TestUserHandler_UpdateUser_InvalidBody(t *testing.T) {
 	}
 }
 
-func TestUserHandler_UpdateUser_EmailConflict(t *testing.T) {
+func TestUserHandler_UpdateUser_RoleUpdate(t *testing.T) {
 	db := setupUserTestDB(t)
 	defer db.Close()
 
 	userRepo := models.NewUserRepository(db)
 	userHandler := handlers.NewUserHandler(userRepo)
 
-	user1 := &models.User{
+	user := &models.User{
 		Username: "user1",
 		Email:    "user1@example.com",
 		Password: "password123",
@@ -506,26 +500,16 @@ func TestUserHandler_UpdateUser_EmailConflict(t *testing.T) {
 		Role:     models.RoleUser,
 		IsActive: true,
 	}
-	userRepo.Create(user1)
-
-	user2 := &models.User{
-		Username: "user2",
-		Email:    "user2@example.com",
-		Password: "password123",
-		Name:     "User 2",
-		Role:     models.RoleUser,
-		IsActive: true,
-	}
-	userRepo.Create(user2)
+	userRepo.Create(user)
 
 	app := fiber.New()
 	app.Put("/users/:id", userHandler.UpdateUser)
 
 	reqBody := map[string]string{
-		"email": "user2@example.com",
+		"role": "ADMIN",
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPut, "/users/"+user1.ID, bytes.NewReader(bodyBytes))
+	req := httptest.NewRequest(http.MethodPut, "/users/"+user.ID, bytes.NewReader(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(req)
@@ -533,8 +517,16 @@ func TestUserHandler_UpdateUser_EmailConflict(t *testing.T) {
 		t.Fatalf("Failed to make request: %v", err)
 	}
 
-	if resp.StatusCode != http.StatusConflict {
-		t.Errorf("Expected status 409, got %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	var updatedUser models.User
+	body, _ := io.ReadAll(resp.Body)
+	json.Unmarshal(body, &updatedUser)
+
+	if updatedUser.Role != models.RoleAdmin {
+		t.Errorf("Expected role ADMIN, got %s", updatedUser.Role)
 	}
 }
 

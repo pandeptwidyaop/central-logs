@@ -10,6 +10,7 @@ import (
 
 	"central-logs/internal/config"
 	"central-logs/internal/database"
+	"central-logs/internal/database/migrations"
 	"central-logs/internal/handlers"
 	"central-logs/internal/middleware"
 	"central-logs/internal/models"
@@ -47,8 +48,8 @@ func main() {
 	}
 	defer db.Close()
 
-	// Run migrations
-	if err := db.Migrate(); err != nil {
+	// Run migrations with Laravel-style tracking
+	if err := db.MigrateWithRegistry(migrations.GetAll()); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 

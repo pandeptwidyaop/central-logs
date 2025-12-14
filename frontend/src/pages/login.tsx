@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { ScrollText, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff, Shield, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,12 +8,17 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function LoginPage() {
-  const { user, login } = useAuth();
+  const { user, login, verify2FALogin } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // 2FA state
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [twoFACode, setTwoFACode] = useState('');
 
   if (user) {
     return <Navigate to="/" replace />;
@@ -25,7 +30,11 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      await login(username, password);
+      const result = await login(username, password);
+      if (result.requires_2fa && result.temp_token) {
+        setRequires2FA(true);
+        setTempToken(result.temp_token);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -33,14 +42,33 @@ export function LoginPage() {
     }
   };
 
+  const handle2FASubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await verify2FALogin(tempToken, twoFACode);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid verification code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBack = () => {
+    setRequires2FA(false);
+    setTempToken('');
+    setTwoFACode('');
+    setError('');
+  };
+
   return (
     <div className="min-h-screen flex">
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/90 via-primary to-primary/80 p-12 flex-col justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/10 rounded-lg">
-            <ScrollText className="h-8 w-8 text-white" />
-          </div>
+          <img src="/icons/image.png" alt="Central Logs" className="h-12 w-12 rounded-xl" />
           <span className="text-2xl font-bold text-white">Central Logs</span>
         </div>
 
@@ -85,79 +113,138 @@ export function LoginPage() {
           {/* Mobile logo */}
           <div className="lg:hidden flex justify-center mb-8">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <ScrollText className="h-8 w-8 text-primary" />
-              </div>
+              <img src="/icons/image.png" alt="Central Logs" className="h-10 w-10 rounded-xl" />
               <span className="text-2xl font-bold">Central Logs</span>
             </div>
           </div>
 
           <Card className="border-0 shadow-lg">
             <CardHeader className="space-y-1 pb-6">
-              <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-              <CardDescription>
-                Enter your credentials to access your account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="admin"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                    className="h-11"
-                    autoComplete="username"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="h-11 pr-10"
-                      autoComplete="current-password"
-                    />
+              {requires2FA ? (
+                <>
+                  <div className="flex items-center gap-2 mb-2">
                     <Button
-                      type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-0 h-11 w-11 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
+                      className="h-8 w-8"
+                      onClick={handleBack}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                      <ArrowLeft className="h-4 w-4" />
                     </Button>
+                    <Shield className="h-5 w-5 text-primary" />
                   </div>
-                </div>
-                <Button type="submit" className="w-full h-11" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    'Sign in'
+                  <CardTitle className="text-2xl font-bold">Two-Factor Authentication</CardTitle>
+                  <CardDescription>
+                    Enter the 6-digit code from your authenticator app or use a backup code
+                  </CardDescription>
+                </>
+              ) : (
+                <>
+                  <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+                  <CardDescription>
+                    Enter your credentials to access your account
+                  </CardDescription>
+                </>
+              )}
+            </CardHeader>
+            <CardContent>
+              {requires2FA ? (
+                <form onSubmit={handle2FASubmit} className="space-y-4">
+                  {error && (
+                    <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{error}</span>
+                    </div>
                   )}
-                </Button>
-              </form>
+                  <div className="space-y-2">
+                    <Label htmlFor="twofa_code">Verification Code</Label>
+                    <Input
+                      id="twofa_code"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="Enter code"
+                      value={twoFACode}
+                      onChange={(e) => setTwoFACode(e.target.value)}
+                      required
+                      className="h-11 font-mono text-center text-lg tracking-widest"
+                      autoComplete="one-time-code"
+                      autoFocus
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enter the 6-digit code from your authenticator app, or a backup code
+                    </p>
+                  </div>
+                  <Button type="submit" className="w-full h-11" disabled={loading || !twoFACode}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      'Verify'
+                    )}
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="admin"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                      className="h-11"
+                      autoComplete="username"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="h-11 pr-10"
+                        autoComplete="current-password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-11 w-11 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full h-11" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      'Sign in'
+                    )}
+                  </Button>
+                </form>
+              )}
             </CardContent>
           </Card>
 

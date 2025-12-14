@@ -49,7 +49,6 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         // Register service worker
         const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
         setRegistration(reg);
-        console.log('[Push] Service worker registered:', reg);
 
         // Wait for service worker to be ready
         await navigator.serviceWorker.ready;
@@ -61,9 +60,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         // Check if already subscribed
         const subscription = await reg.pushManager.getSubscription();
         setIsSubscribed(!!subscription);
-        console.log('[Push] Current subscription:', subscription);
       } catch (err) {
-        console.error('[Push] Init error:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize push notifications');
       } finally {
         setIsLoading(false);
@@ -99,8 +96,6 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
       });
 
-      console.log('[Push] Subscribed:', subscription);
-
       // Send subscription to backend
       const subscriptionJSON = subscription.toJSON();
       await api.subscribePush({
@@ -111,7 +106,6 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       setIsSubscribed(true);
       return true;
     } catch (err) {
-      console.error('[Push] Subscribe error:', err);
       setError(err instanceof Error ? err.message : 'Failed to subscribe');
       return false;
     } finally {
@@ -142,7 +136,6 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       setIsSubscribed(false);
       return true;
     } catch (err) {
-      console.error('[Push] Unsubscribe error:', err);
       setError(err instanceof Error ? err.message : 'Failed to unsubscribe');
       return false;
     } finally {

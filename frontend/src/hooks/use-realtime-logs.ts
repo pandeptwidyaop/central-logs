@@ -48,11 +48,11 @@ export function useRealtimeLogs(options: UseRealtimeLogsOptions = {}) {
     audio.load();
 
     audio.addEventListener('canplaythrough', () => {
-      console.log('[Audio] Sound loaded and ready to play');
+      // Sound loaded and ready
     });
 
-    audio.addEventListener('error', (e) => {
-      console.error('[Audio] Failed to load sound:', e);
+    audio.addEventListener('error', () => {
+      // Audio load failed - notifications will be silent
     });
 
     audioRef.current = audio;
@@ -98,12 +98,9 @@ export function useRealtimeLogs(options: UseRealtimeLogsOptions = {}) {
       }
     }
 
-    console.log('[WS] Connecting to:', wsUrl);
-
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-      console.log('[WS] Connected');
       setIsConnected(true);
       setConnectionError(null);
     };
@@ -113,8 +110,6 @@ export function useRealtimeLogs(options: UseRealtimeLogsOptions = {}) {
         const message: WebSocketMessage = JSON.parse(event.data);
 
         if (message.type === 'log' && message.data) {
-          console.log('[WS] New log:', message.data);
-
           // Call the callback
           if (onNewLogRef.current) {
             onNewLogRef.current(message.data);
@@ -128,18 +123,16 @@ export function useRealtimeLogs(options: UseRealtimeLogsOptions = {}) {
             // Play sound for specified levels
             if (playSoundRef.current && levels.includes(log.level)) {
               const audio = audioRefCurrent.current;
-              console.log('[WS] Attempting to play sound for level:', log.level, 'audio ready:', !!audio);
               if (audio) {
                 audio.currentTime = 0;
-                audio.play()
-                  .then(() => console.log('[WS] Sound played successfully'))
-                  .catch((err) => console.error('[WS] Sound play failed:', err));
+                audio.play().catch(() => {
+                  // Sound play failed - user may not have interacted with page yet
+                });
               }
             }
 
             // Show toast for specified levels
             if (showToastRef.current && levels.includes(log.level)) {
-              console.log('[WS] Showing toast for:', log.level, log.message);
               toastRef.current({
                 title: `${log.level} - ${log.project_name || 'Unknown Project'}`,
                 description: log.message.length > 100 ? log.message.substring(0, 100) + '...' : log.message,
@@ -148,26 +141,23 @@ export function useRealtimeLogs(options: UseRealtimeLogsOptions = {}) {
             }
           }
         } else if (message.type === 'pong') {
-          console.log('[WS] Pong received');
+          // Pong received - connection alive
         }
-      } catch (err) {
-        console.error('[WS] Error parsing message:', err);
+      } catch {
+        // Error parsing WebSocket message
       }
     };
 
-    ws.onerror = (error) => {
-      console.error('[WS] Error:', error);
+    ws.onerror = () => {
       setConnectionError('WebSocket connection error');
     };
 
     ws.onclose = (event) => {
-      console.log('[WS] Disconnected:', event.code, event.reason);
       setIsConnected(false);
 
       // Reconnect after 5 seconds if not intentionally closed
       if (event.code !== 1000) {
         reconnectTimeoutRef.current = setTimeout(() => {
-          console.log('[WS] Reconnecting...');
           // Will reconnect on next effect run due to state change
         }, 5000);
       }
@@ -190,7 +180,8 @@ export function useRealtimeLogs(options: UseRealtimeLogsOptions = {}) {
       ws.close(1000, 'Component unmounted');
       wsRef.current = null;
     };
-  }, [enabled, user?.id, projectId]); // Only reconnect when these change
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- audioRef is stable, user?.id is sufficient (avoid reconnect on user object changes)
+  }, [enabled, user?.id, projectId]);
 
   // Disconnect function for manual control
   const disconnect = useCallback(() => {

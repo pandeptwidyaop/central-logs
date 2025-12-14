@@ -1,16 +1,53 @@
-import { useState } from 'react';
-import { api } from '@/lib/api';
+import { useState, useEffect } from 'react';
+import { api, type TwoFactorSetupResponse, type TwoFactorStatusResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Shield, ShieldCheck, ShieldOff, Copy, Key, RefreshCw } from 'lucide-react';
+import QRCode from 'qrcode';
 
 export function SettingsPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // 2FA state
+  const [twoFAStatus, setTwoFAStatus] = useState<TwoFactorStatusResponse | null>(null);
+  const [twoFALoading, setTwoFALoading] = useState(false);
+  const [setupModalOpen, setSetupModalOpen] = useState(false);
+  const [disableModalOpen, setDisableModalOpen] = useState(false);
+  const [backupCodesModalOpen, setBackupCodesModalOpen] = useState(false);
+  const [setupData, setSetupData] = useState<TwoFactorSetupResponse | null>(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+  const [verifyCode, setVerifyCode] = useState('');
+  const [disableCode, setDisableCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [regenerateCode, setRegenerateCode] = useState('');
+
+  // Fetch 2FA status on mount
+  useEffect(() => {
+    fetchTwoFAStatus();
+  }, []);
+
+  const fetchTwoFAStatus = async () => {
+    try {
+      const status = await api.get2FAStatus();
+      setTwoFAStatus(status);
+    } catch {
+      // Failed to fetch 2FA status - will show as disabled
+    }
+  };
 
   const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,6 +78,133 @@ export function SettingsPage() {
       });
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  // Start 2FA setup
+  const handleStartSetup = async () => {
+    setTwoFALoading(true);
+    try {
+      const data = await api.setup2FA();
+      setSetupData(data);
+      // Generate QR code
+      const qrUrl = await QRCode.toDataURL(data.qr_code);
+      setQrCodeDataUrl(qrUrl);
+      setSetupModalOpen(true);
+    } catch (err) {
+      toast({
+        title: 'Failed to start 2FA setup',
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setTwoFALoading(false);
+    }
+  };
+
+  // Verify and enable 2FA
+  const handleVerify2FA = async () => {
+    if (!verifyCode || verifyCode.length !== 6) {
+      toast({
+        title: 'Please enter a 6-digit code',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setTwoFALoading(true);
+    try {
+      const result = await api.verify2FA(verifyCode);
+      toast({ title: result.message });
+      if (result.backup_codes) {
+        setBackupCodes(result.backup_codes);
+        setSetupModalOpen(false);
+        setBackupCodesModalOpen(true);
+      }
+      fetchTwoFAStatus();
+      refreshUser?.();
+      setVerifyCode('');
+      setSetupData(null);
+    } catch (err) {
+      toast({
+        title: 'Invalid verification code',
+        description: err instanceof Error ? err.message : 'Please try again',
+        variant: 'destructive',
+      });
+    } finally {
+      setTwoFALoading(false);
+    }
+  };
+
+  // Disable 2FA
+  const handleDisable2FA = async () => {
+    if (!disableCode) {
+      toast({
+        title: 'Please enter your verification code',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setTwoFALoading(true);
+    try {
+      await api.disable2FA(disableCode);
+      toast({ title: 'Two-factor authentication disabled' });
+      setDisableModalOpen(false);
+      setDisableCode('');
+      fetchTwoFAStatus();
+      refreshUser?.();
+    } catch (err) {
+      toast({
+        title: 'Failed to disable 2FA',
+        description: err instanceof Error ? err.message : 'Invalid code',
+        variant: 'destructive',
+      });
+    } finally {
+      setTwoFALoading(false);
+    }
+  };
+
+  // Regenerate backup codes
+  const handleRegenerateBackupCodes = async () => {
+    if (!regenerateCode || regenerateCode.length !== 6) {
+      toast({
+        title: 'Please enter your 6-digit code',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setTwoFALoading(true);
+    try {
+      const result = await api.regenerateBackupCodes(regenerateCode);
+      setBackupCodes(result.backup_codes);
+      setBackupCodesModalOpen(true);
+      setRegenerateCode('');
+      fetchTwoFAStatus();
+      toast({ title: 'Backup codes regenerated' });
+    } catch (err) {
+      toast({
+        title: 'Failed to regenerate backup codes',
+        description: err instanceof Error ? err.message : 'Invalid code',
+        variant: 'destructive',
+      });
+    } finally {
+      setTwoFALoading(false);
+    }
+  };
+
+  // Copy backup codes
+  const copyBackupCodes = () => {
+    navigator.clipboard.writeText(backupCodes.join('\n'));
+    toast({ title: 'Backup codes copied to clipboard' });
+  };
+
+  // Copy secret key
+  const copySecretKey = () => {
+    if (setupData?.secret) {
+      navigator.clipboard.writeText(setupData.secret);
+      toast({ title: 'Secret key copied to clipboard' });
     }
   };
 
@@ -115,7 +279,225 @@ export function SettingsPage() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Two-Factor Authentication Card */}
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Two-Factor Authentication
+            </CardTitle>
+            <CardDescription>
+              Add an extra layer of security to your account using an authenticator app
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {twoFAStatus?.enabled ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-4 bg-green-500/10 rounded-lg">
+                  <ShieldCheck className="h-6 w-6 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-600">2FA is enabled</p>
+                    <p className="text-sm text-muted-foreground">
+                      {twoFAStatus.backup_codes_count} backup codes remaining
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex-1 min-w-[200px]">
+                    <Label className="text-sm text-muted-foreground mb-2 block">
+                      Enter your 6-digit code to regenerate backup codes
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={6}
+                        placeholder="000000"
+                        value={regenerateCode}
+                        onChange={(e) => setRegenerateCode(e.target.value.replace(/\D/g, ''))}
+                        className="font-mono text-center w-32"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={handleRegenerateBackupCodes}
+                        disabled={twoFALoading || regenerateCode.length !== 6}
+                      >
+                        <RefreshCw className={`mr-2 h-4 w-4 ${twoFALoading ? 'animate-spin' : ''}`} />
+                        Regenerate Codes
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="destructive"
+                    onClick={() => setDisableModalOpen(true)}
+                  >
+                    <ShieldOff className="mr-2 h-4 w-4" />
+                    Disable 2FA
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-4 bg-yellow-500/10 rounded-lg">
+                  <Shield className="h-6 w-6 text-yellow-600" />
+                  <div>
+                    <p className="font-medium text-yellow-600">2FA is not enabled</p>
+                    <p className="text-sm text-muted-foreground">
+                      Protect your account with two-factor authentication
+                    </p>
+                  </div>
+                </div>
+
+                <Button onClick={handleStartSetup} disabled={twoFALoading}>
+                  <Key className="mr-2 h-4 w-4" />
+                  {twoFALoading ? 'Setting up...' : 'Enable Two-Factor Authentication'}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* 2FA Setup Modal */}
+      <Dialog open={setupModalOpen} onOpenChange={setSetupModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set up Two-Factor Authentication</DialogTitle>
+            <DialogDescription>
+              Scan the QR code with your authenticator app (Google Authenticator, Authy, etc.)
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {qrCodeDataUrl && (
+              <div className="flex justify-center">
+                <img src={qrCodeDataUrl} alt="2FA QR Code" className="w-48 h-48" />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">
+                Or enter this secret key manually:
+              </Label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 p-2 bg-muted rounded text-sm font-mono break-all">
+                  {setupData?.secret}
+                </code>
+                <Button variant="ghost" size="icon" onClick={copySecretKey}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="verify_code">Enter the 6-digit code from your app</Label>
+              <Input
+                id="verify_code"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                placeholder="000000"
+                value={verifyCode}
+                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
+                className="font-mono text-center text-lg tracking-widest"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSetupModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleVerify2FA}
+              disabled={twoFALoading || verifyCode.length !== 6}
+            >
+              {twoFALoading ? 'Verifying...' : 'Verify & Enable'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disable 2FA Modal */}
+      <Dialog open={disableModalOpen} onOpenChange={setDisableModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Disable Two-Factor Authentication</DialogTitle>
+            <DialogDescription>
+              Enter your current 2FA code or a backup code to disable two-factor authentication.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="disable_code">Verification Code</Label>
+              <Input
+                id="disable_code"
+                type="text"
+                placeholder="Enter code"
+                value={disableCode}
+                onChange={(e) => setDisableCode(e.target.value)}
+                className="font-mono text-center"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDisableModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDisable2FA}
+              disabled={twoFALoading || !disableCode}
+            >
+              {twoFALoading ? 'Disabling...' : 'Disable 2FA'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Backup Codes Modal */}
+      <Dialog open={backupCodesModalOpen} onOpenChange={setBackupCodesModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Backup Codes</DialogTitle>
+            <DialogDescription>
+              Save these backup codes in a secure place. Each code can only be used once.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2 p-4 bg-muted rounded-lg">
+              {backupCodes.map((code, index) => (
+                <code key={index} className="font-mono text-sm text-center py-1">
+                  {code}
+                </code>
+              ))}
+            </div>
+
+            <Button variant="outline" className="w-full" onClick={copyBackupCodes}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copy All Codes
+            </Button>
+
+            <p className="text-sm text-muted-foreground text-center">
+              You will not be able to see these codes again after closing this dialog.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setBackupCodesModalOpen(false)}>
+              I've saved my codes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

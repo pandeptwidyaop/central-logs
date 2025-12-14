@@ -20,7 +20,9 @@ import {
   Users,
   UserPlus,
 } from 'lucide-react';
-import { api, type Project, type LogEntry, type Channel, type ProjectMember, type User } from '@/lib/api';
+import { api, type Project, type LogEntry, type Channel, type ProjectMember, type User, type ProjectIconType } from '@/lib/api';
+import { ProjectIcon } from '@/components/project-icon';
+import { ProjectIconPicker } from '@/components/project-icon-picker';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,7 +77,6 @@ export function ProjectDetailPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
@@ -96,6 +97,15 @@ export function ProjectDetailPage() {
   const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedRole, setSelectedRole] = useState('VIEWER');
+  // Edit form state
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editIconType, setEditIconType] = useState<ProjectIconType>('initials');
+  const [editIconValue, setEditIconValue] = useState('');
+  // API Key dialog state
+  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
+  const [newApiKey, setNewApiKey] = useState('');
+  const [copiedApiKey, setCopiedApiKey] = useState(false);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   const {
@@ -207,14 +217,24 @@ export function ProjectDetailPage() {
     fetchAllUsers();
   }, [fetchProject, fetchLogs, fetchPushChannel, fetchMembers, fetchAllUsers]);
 
+  const openEditDialog = () => {
+    if (!project) return;
+    setEditName(project.name);
+    setEditDescription(project.description || '');
+    setEditIconType(project.icon_type || 'initials');
+    setEditIconValue(project.icon_value || '');
+    setEditDialogOpen(true);
+  };
+
   const handleEditProject = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!project) return;
-    const formData = new FormData(e.currentTarget);
     try {
       await api.updateProject(project.id, {
-        name: formData.get('name') as string,
-        description: formData.get('description') as string,
+        name: editName,
+        description: editDescription,
+        icon_type: editIconType,
+        icon_value: editIconValue,
       });
       toast({ title: 'Project updated successfully' });
       setEditDialogOpen(false);
@@ -230,12 +250,14 @@ export function ProjectDetailPage() {
 
   const handleRotateKey = async () => {
     if (!project) return;
+    if (!confirm(`Rotate API key for "${project.name}"? The old key will stop working immediately.`)) {
+      return;
+    }
     try {
       const result = await api.rotateApiKey(project.id);
-      toast({
-        title: 'API key rotated',
-        description: `New key: ${result.api_key.substring(0, 20)}...`,
-      });
+      // Show API key dialog with full key
+      setNewApiKey(result.api_key);
+      setApiKeyDialogOpen(true);
       fetchProject();
     } catch (err) {
       toast({
@@ -244,6 +266,12 @@ export function ProjectDetailPage() {
         variant: 'destructive',
       });
     }
+  };
+
+  const copyNewApiKey = () => {
+    navigator.clipboard.writeText(newApiKey);
+    setCopiedApiKey(true);
+    setTimeout(() => setCopiedApiKey(false), 2000);
   };
 
   const handleDeleteProject = async () => {
@@ -261,14 +289,6 @@ export function ProjectDetailPage() {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive',
       });
-    }
-  };
-
-  const copyApiKey = () => {
-    if (project?.api_key) {
-      navigator.clipboard.writeText(project.api_key);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -388,6 +408,12 @@ export function ProjectDetailPage() {
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
+          <ProjectIcon
+            name={project.name}
+            iconType={project.icon_type}
+            iconValue={project.icon_value}
+            size="xl"
+          />
           <div>
             <h1 className="text-3xl font-bold">{project.name}</h1>
             <p className="text-muted-foreground">
@@ -396,7 +422,7 @@ export function ProjectDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+          <Button variant="outline" onClick={openEditDialog}>
             <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
@@ -465,18 +491,16 @@ export function ProjectDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {project.api_key ? (
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded-lg bg-muted px-4 py-3 font-mono text-sm">
-                    {project.api_key}
-                  </code>
-                  <Button variant="outline" size="icon" onClick={copyApiKey}>
-                    {copied ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
+              {project.api_key_prefix ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded-lg bg-muted px-4 py-3 font-mono text-sm">
+                      {project.api_key_prefix}
+                    </code>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    For security reasons, only the key prefix is shown. Click "Rotate API Key" to generate a new key and view it once.
+                  </p>
                 </div>
               ) : (
                 <p className="text-muted-foreground">No API key available</p>
@@ -499,7 +523,7 @@ export function ProjectDetailPage() {
             <CardContent>
               <pre className="overflow-x-auto rounded-lg bg-muted p-4 text-sm">
 {`curl -X POST http://localhost:3000/api/v1/logs \\
-  -H "X-API-Key: ${project.api_key || 'YOUR_API_KEY'}" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "level": "INFO",
@@ -507,6 +531,9 @@ export function ProjectDetailPage() {
     "metadata": {"user": "test"}
   }'`}
               </pre>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Replace YOUR_API_KEY with your full API key (obtained when creating or rotating the key)
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -894,7 +921,7 @@ export function ProjectDetailPage() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Project</DialogTitle>
             <DialogDescription>Update project details</DialogDescription>
@@ -905,8 +932,8 @@ export function ProjectDetailPage() {
                 <Label htmlFor="edit-name">Name</Label>
                 <Input
                   id="edit-name"
-                  name="name"
-                  defaultValue={project.name}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
                   required
                 />
               </div>
@@ -914,10 +941,19 @@ export function ProjectDetailPage() {
                 <Label htmlFor="edit-description">Description</Label>
                 <Input
                   id="edit-description"
-                  name="description"
-                  defaultValue={project.description}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
                 />
               </div>
+              <ProjectIconPicker
+                name={editName || 'Project'}
+                iconType={editIconType}
+                iconValue={editIconValue}
+                onIconChange={(type, value) => {
+                  setEditIconType(type);
+                  setEditIconValue(value);
+                }}
+              />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
@@ -988,6 +1024,50 @@ export function ProjectDetailPage() {
             </Button>
             <Button onClick={handleAddMember} disabled={!selectedUserId}>
               Add Member
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* API Key Dialog */}
+      <Dialog open={apiKeyDialogOpen} onOpenChange={(open) => {
+        setApiKeyDialogOpen(open);
+        if (!open) {
+          setCopiedApiKey(false);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              New API Key for {project?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Copy this API key now. For security reasons, it won't be shown again.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-lg bg-muted px-4 py-3 font-mono text-sm break-all">
+                {newApiKey}
+              </code>
+              <Button variant="outline" size="icon" onClick={copyNewApiKey}>
+                {copiedApiKey ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Make sure to copy your API key now. You won't be able to see it again!
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setApiKeyDialogOpen(false)}>
+              {copiedApiKey ? 'Done' : 'Close'}
             </Button>
           </DialogFooter>
         </DialogContent>

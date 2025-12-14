@@ -26,8 +26,10 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token string       `json:"token"`
-	User  *models.User `json:"user"`
+	Token       string       `json:"token,omitempty"`
+	User        *models.User `json:"user,omitempty"`
+	Requires2FA bool         `json:"requires_2fa,omitempty"`
+	TempToken   string       `json:"temp_token,omitempty"`
 }
 
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
@@ -60,6 +62,22 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	if !user.IsActive {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"error": "Account is deactivated",
+		})
+	}
+
+	// Check if 2FA is enabled
+	if user.TwoFactorEnabled {
+		// Generate temp token for 2FA verification
+		tempToken, err := h.jwtManager.GenerateTempToken(user.ID, user.Username, string(user.Role))
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to generate token",
+			})
+		}
+
+		return c.JSON(LoginResponse{
+			Requires2FA: true,
+			TempToken:   tempToken,
 		})
 	}
 

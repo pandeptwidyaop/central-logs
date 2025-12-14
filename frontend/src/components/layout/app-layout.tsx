@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { Sidebar } from './sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { useRealtimeLogs } from '@/hooks/use-realtime-logs';
 import { api, type Channel } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 
 // Log levels in order of priority (lowest to highest)
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'];
@@ -19,6 +21,7 @@ function getLevelsFromMinLevel(minLevel: string): string[] {
 export function AppLayout() {
   const { user, loading } = useAuth();
   const [toastLevels, setToastLevels] = useState<string[]>(['ERROR', 'CRITICAL']);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch push channel config from all projects
   useEffect(() => {
@@ -47,9 +50,8 @@ export function AppLayout() {
 
         const levels = getLevelsFromMinLevel(lowestMinLevel);
         setToastLevels(levels);
-        console.log('[AppLayout] Global toast levels:', lowestMinLevel, '->', levels);
-      } catch (err) {
-        console.error('[AppLayout] Failed to fetch push config:', err);
+      } catch {
+        // Failed to fetch push config - use defaults
       }
     }
 
@@ -78,12 +80,35 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar />
-      <main className="flex-1 overflow-auto bg-background">
-        <div className="container mx-auto p-6">
-          <Outlet />
-        </div>
-      </main>
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Mobile header */}
+        <header className="flex h-14 items-center border-b bg-card px-4 lg:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="ml-3 flex items-center gap-2">
+            <img
+              src="/icons/image.png"
+              alt="Central Logs"
+              className="h-7 w-7 rounded-lg"
+            />
+            <span className="font-semibold">Central Logs</span>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-auto bg-background">
+          <div className="container mx-auto p-4 lg:p-6">
+            <Outlet />
+          </div>
+        </main>
+      </div>
       <Toaster />
     </div>
   );

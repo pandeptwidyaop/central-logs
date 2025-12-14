@@ -15,6 +15,8 @@ type Project struct {
 	ID              string           `json:"id"`
 	Name            string           `json:"name"`
 	Description     string           `json:"description"`
+	IconType        string           `json:"icon_type"`  // "initials", "icon", or "image"
+	IconValue       string           `json:"icon_value"` // initials text, icon name, or base64 image
 	APIKey          string           `json:"-"`
 	APIKeyPrefix    string           `json:"api_key_prefix"`
 	IsActive        bool             `json:"is_active"`
@@ -89,9 +91,9 @@ func (r *ProjectRepository) Create(project *Project) (string, error) {
 	}
 
 	_, err = r.db.Exec(`
-		INSERT INTO projects (id, name, description, api_key, api_key_prefix, is_active, retention_config, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, project.ID, project.Name, project.Description, project.APIKey, project.APIKeyPrefix, project.IsActive, retentionJSON, project.CreatedAt, project.UpdatedAt)
+		INSERT INTO projects (id, name, description, icon_type, icon_value, api_key, api_key_prefix, is_active, retention_config, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, project.ID, project.Name, project.Description, project.IconType, project.IconValue, project.APIKey, project.APIKeyPrefix, project.IsActive, retentionJSON, project.CreatedAt, project.UpdatedAt)
 
 	if err != nil {
 		return "", err
@@ -104,11 +106,13 @@ func (r *ProjectRepository) GetByID(id string) (*Project, error) {
 	project := &Project{}
 	var retentionJSON sql.NullString
 	var description sql.NullString
+	var iconType sql.NullString
+	var iconValue sql.NullString
 
 	err := r.db.QueryRow(`
-		SELECT id, name, description, api_key, api_key_prefix, is_active, retention_config, created_at, updated_at
+		SELECT id, name, description, icon_type, icon_value, api_key, api_key_prefix, is_active, retention_config, created_at, updated_at
 		FROM projects WHERE id = ?
-	`, id).Scan(&project.ID, &project.Name, &description, &project.APIKey, &project.APIKeyPrefix, &project.IsActive, &retentionJSON, &project.CreatedAt, &project.UpdatedAt)
+	`, id).Scan(&project.ID, &project.Name, &description, &iconType, &iconValue, &project.APIKey, &project.APIKeyPrefix, &project.IsActive, &retentionJSON, &project.CreatedAt, &project.UpdatedAt)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -119,6 +123,12 @@ func (r *ProjectRepository) GetByID(id string) (*Project, error) {
 
 	if description.Valid {
 		project.Description = description.String
+	}
+	if iconType.Valid {
+		project.IconType = iconType.String
+	}
+	if iconValue.Valid {
+		project.IconValue = iconValue.String
 	}
 
 	if retentionJSON.Valid {
@@ -136,11 +146,13 @@ func (r *ProjectRepository) GetByAPIKey(apiKey string) (*Project, error) {
 	project := &Project{}
 	var retentionJSON sql.NullString
 	var description sql.NullString
+	var iconType sql.NullString
+	var iconValue sql.NullString
 
 	err := r.db.QueryRow(`
-		SELECT id, name, description, api_key, api_key_prefix, is_active, retention_config, created_at, updated_at
+		SELECT id, name, description, icon_type, icon_value, api_key, api_key_prefix, is_active, retention_config, created_at, updated_at
 		FROM projects WHERE api_key = ? AND is_active = 1
-	`, hashedKey).Scan(&project.ID, &project.Name, &description, &project.APIKey, &project.APIKeyPrefix, &project.IsActive, &retentionJSON, &project.CreatedAt, &project.UpdatedAt)
+	`, hashedKey).Scan(&project.ID, &project.Name, &description, &iconType, &iconValue, &project.APIKey, &project.APIKeyPrefix, &project.IsActive, &retentionJSON, &project.CreatedAt, &project.UpdatedAt)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -151,6 +163,12 @@ func (r *ProjectRepository) GetByAPIKey(apiKey string) (*Project, error) {
 
 	if description.Valid {
 		project.Description = description.String
+	}
+	if iconType.Valid {
+		project.IconType = iconType.String
+	}
+	if iconValue.Valid {
+		project.IconValue = iconValue.String
 	}
 
 	if retentionJSON.Valid {
@@ -164,7 +182,7 @@ func (r *ProjectRepository) GetByAPIKey(apiKey string) (*Project, error) {
 
 func (r *ProjectRepository) GetAll() ([]*Project, error) {
 	rows, err := r.db.Query(`
-		SELECT id, name, description, api_key, api_key_prefix, is_active, retention_config, created_at, updated_at
+		SELECT id, name, description, icon_type, icon_value, api_key, api_key_prefix, is_active, retention_config, created_at, updated_at
 		FROM projects ORDER BY created_at DESC
 	`)
 	if err != nil {
@@ -177,13 +195,21 @@ func (r *ProjectRepository) GetAll() ([]*Project, error) {
 		project := &Project{}
 		var retentionJSON sql.NullString
 		var description sql.NullString
+		var iconType sql.NullString
+		var iconValue sql.NullString
 
-		if err := rows.Scan(&project.ID, &project.Name, &description, &project.APIKey, &project.APIKeyPrefix, &project.IsActive, &retentionJSON, &project.CreatedAt, &project.UpdatedAt); err != nil {
+		if err := rows.Scan(&project.ID, &project.Name, &description, &iconType, &iconValue, &project.APIKey, &project.APIKeyPrefix, &project.IsActive, &retentionJSON, &project.CreatedAt, &project.UpdatedAt); err != nil {
 			return nil, err
 		}
 
 		if description.Valid {
 			project.Description = description.String
+		}
+		if iconType.Valid {
+			project.IconType = iconType.String
+		}
+		if iconValue.Valid {
+			project.IconValue = iconValue.String
 		}
 
 		if retentionJSON.Valid {
@@ -199,7 +225,7 @@ func (r *ProjectRepository) GetAll() ([]*Project, error) {
 
 func (r *ProjectRepository) GetByUserID(userID string) ([]*Project, error) {
 	rows, err := r.db.Query(`
-		SELECT p.id, p.name, p.description, p.api_key, p.api_key_prefix, p.is_active, p.retention_config, p.created_at, p.updated_at
+		SELECT p.id, p.name, p.description, p.icon_type, p.icon_value, p.api_key, p.api_key_prefix, p.is_active, p.retention_config, p.created_at, p.updated_at
 		FROM projects p
 		INNER JOIN user_projects up ON p.id = up.project_id
 		WHERE up.user_id = ?
@@ -215,13 +241,21 @@ func (r *ProjectRepository) GetByUserID(userID string) ([]*Project, error) {
 		project := &Project{}
 		var retentionJSON sql.NullString
 		var description sql.NullString
+		var iconType sql.NullString
+		var iconValue sql.NullString
 
-		if err := rows.Scan(&project.ID, &project.Name, &description, &project.APIKey, &project.APIKeyPrefix, &project.IsActive, &retentionJSON, &project.CreatedAt, &project.UpdatedAt); err != nil {
+		if err := rows.Scan(&project.ID, &project.Name, &description, &iconType, &iconValue, &project.APIKey, &project.APIKeyPrefix, &project.IsActive, &retentionJSON, &project.CreatedAt, &project.UpdatedAt); err != nil {
 			return nil, err
 		}
 
 		if description.Valid {
 			project.Description = description.String
+		}
+		if iconType.Valid {
+			project.IconType = iconType.String
+		}
+		if iconValue.Valid {
+			project.IconValue = iconValue.String
 		}
 
 		if retentionJSON.Valid {
@@ -249,9 +283,9 @@ func (r *ProjectRepository) Update(project *Project) error {
 	}
 
 	_, err := r.db.Exec(`
-		UPDATE projects SET name = ?, description = ?, is_active = ?, retention_config = ?, updated_at = ?
+		UPDATE projects SET name = ?, description = ?, icon_type = ?, icon_value = ?, is_active = ?, retention_config = ?, updated_at = ?
 		WHERE id = ?
-	`, project.Name, project.Description, project.IsActive, retentionJSON, project.UpdatedAt, project.ID)
+	`, project.Name, project.Description, project.IconType, project.IconValue, project.IsActive, retentionJSON, project.UpdatedAt, project.ID)
 	return err
 }
 

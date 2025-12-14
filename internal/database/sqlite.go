@@ -36,6 +36,19 @@ func New(dbPath string) (*DB, error) {
 }
 
 func (db *DB) Migrate() error {
+	// Run migrations that may fail (like ALTER TABLE for existing columns)
+	alterMigrations := []string{
+		`ALTER TABLE users ADD COLUMN two_factor_secret TEXT DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER DEFAULT 0`,
+		`ALTER TABLE users ADD COLUMN backup_codes TEXT DEFAULT ''`,
+		`ALTER TABLE projects ADD COLUMN icon_type TEXT DEFAULT 'initials'`,
+		`ALTER TABLE projects ADD COLUMN icon_value TEXT DEFAULT ''`,
+	}
+	for _, migration := range alterMigrations {
+		// Ignore errors for ALTER TABLE (column may already exist)
+		db.Exec(migration)
+	}
+
 	migrations := []string{
 		// Users table
 		`CREATE TABLE IF NOT EXISTS users (

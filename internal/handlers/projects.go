@@ -28,6 +28,8 @@ func NewProjectHandler(
 type CreateProjectRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	IconType    string `json:"icon_type"`
+	IconValue   string `json:"icon_value"`
 }
 
 type CreateProjectResponse struct {
@@ -86,9 +88,18 @@ func (h *ProjectHandler) CreateProject(c *fiber.Ctx) error {
 		})
 	}
 
+	// Default to initials if no icon type specified
+	iconType := req.IconType
+	iconValue := req.IconValue
+	if iconType == "" {
+		iconType = "initials"
+	}
+
 	project := &models.Project{
 		Name:        req.Name,
 		Description: req.Description,
+		IconType:    iconType,
+		IconValue:   iconValue,
 		IsActive:    true,
 	}
 
@@ -164,6 +175,8 @@ func (h *ProjectHandler) GetProject(c *fiber.Ctx) error {
 type UpdateProjectRequest struct {
 	Name            string                  `json:"name"`
 	Description     string                  `json:"description"`
+	IconType        string                  `json:"icon_type"`
+	IconValue       string                  `json:"icon_value"`
 	IsActive        *bool                   `json:"is_active"`
 	RetentionConfig *models.RetentionConfig `json:"retention_config"`
 }
@@ -197,6 +210,11 @@ func (h *ProjectHandler) UpdateProject(c *fiber.Ctx) error {
 	if req.Description != "" {
 		project.Description = req.Description
 	}
+	if req.IconType != "" {
+		project.IconType = req.IconType
+	}
+	// Allow empty icon_value (for initials mode)
+	project.IconValue = req.IconValue
 	if req.IsActive != nil {
 		project.IsActive = *req.IsActive
 	}

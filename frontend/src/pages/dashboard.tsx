@@ -38,16 +38,19 @@ export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchStats = () => {
+  const fetchStats = useCallback(async () => {
     setLoading(true);
-    api.getStats()
-      .then(setStats)
-      .finally(() => setLoading(false));
-  };
+    try {
+      const data = await api.getStats();
+      setStats(data);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    void fetchStats();
+  }, [fetchStats]);
 
   // Handle real-time log updates
   const handleNewLog = useCallback((newLog: LogEntry) => {

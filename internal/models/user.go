@@ -16,15 +16,18 @@ const (
 )
 
 type User struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email,omitempty"`
-	Password  string    `json:"-"`
-	Name      string    `json:"name"`
-	Role      UserRole  `json:"role"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID               string    `json:"id"`
+	Username         string    `json:"username"`
+	Email            string    `json:"email,omitempty"`
+	Password         string    `json:"-"`
+	Name             string    `json:"name"`
+	Role             UserRole  `json:"role"`
+	IsActive         bool      `json:"is_active"`
+	TwoFactorSecret  string    `json:"-"`
+	TwoFactorEnabled bool      `json:"two_factor_enabled"`
+	BackupCodes      string    `json:"-"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 type UserRepository struct {
@@ -46,19 +49,20 @@ func (r *UserRepository) Create(user *User) error {
 	}
 
 	_, err = r.db.Exec(`
-		INSERT INTO users (id, username, email, password, name, role, is_active, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, user.ID, user.Username, user.Email, string(hashedPassword), user.Name, user.Role, user.IsActive, user.CreatedAt, user.UpdatedAt)
+		INSERT INTO users (id, username, email, password, name, role, is_active, two_factor_secret, two_factor_enabled, backup_codes, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, user.ID, user.Username, user.Email, string(hashedPassword), user.Name, user.Role, user.IsActive, user.TwoFactorSecret, user.TwoFactorEnabled, user.BackupCodes, user.CreatedAt, user.UpdatedAt)
 
 	return err
 }
 
 func (r *UserRepository) GetByID(id string) (*User, error) {
 	user := &User{}
+	var twoFactorSecret, backupCodes sql.NullString
 	err := r.db.QueryRow(`
-		SELECT id, username, email, password, name, role, is_active, created_at, updated_at
+		SELECT id, username, email, password, name, role, is_active, two_factor_secret, two_factor_enabled, backup_codes, created_at, updated_at
 		FROM users WHERE id = ?
-	`, id).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Name, &user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
+	`, id).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Name, &user.Role, &user.IsActive, &twoFactorSecret, &user.TwoFactorEnabled, &backupCodes, &user.CreatedAt, &user.UpdatedAt)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -66,15 +70,18 @@ func (r *UserRepository) GetByID(id string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
+	user.TwoFactorSecret = twoFactorSecret.String
+	user.BackupCodes = backupCodes.String
 	return user, nil
 }
 
 func (r *UserRepository) GetByUsername(username string) (*User, error) {
 	user := &User{}
+	var twoFactorSecret, backupCodes sql.NullString
 	err := r.db.QueryRow(`
-		SELECT id, username, email, password, name, role, is_active, created_at, updated_at
+		SELECT id, username, email, password, name, role, is_active, two_factor_secret, two_factor_enabled, backup_codes, created_at, updated_at
 		FROM users WHERE username = ?
-	`, username).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Name, &user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
+	`, username).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Name, &user.Role, &user.IsActive, &twoFactorSecret, &user.TwoFactorEnabled, &backupCodes, &user.CreatedAt, &user.UpdatedAt)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -82,12 +89,14 @@ func (r *UserRepository) GetByUsername(username string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
+	user.TwoFactorSecret = twoFactorSecret.String
+	user.BackupCodes = backupCodes.String
 	return user, nil
 }
 
 func (r *UserRepository) GetAll() ([]*User, error) {
 	rows, err := r.db.Query(`
-		SELECT id, username, email, password, name, role, is_active, created_at, updated_at
+		SELECT id, username, email, password, name, role, is_active, two_factor_secret, two_factor_enabled, backup_codes, created_at, updated_at
 		FROM users ORDER BY created_at DESC
 	`)
 	if err != nil {
@@ -98,9 +107,12 @@ func (r *UserRepository) GetAll() ([]*User, error) {
 	var users []*User
 	for rows.Next() {
 		user := &User{}
-		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Name, &user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt); err != nil {
+		var twoFactorSecret, backupCodes sql.NullString
+		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Name, &user.Role, &user.IsActive, &twoFactorSecret, &user.TwoFactorEnabled, &backupCodes, &user.CreatedAt, &user.UpdatedAt); err != nil {
 			return nil, err
 		}
+		user.TwoFactorSecret = twoFactorSecret.String
+		user.BackupCodes = backupCodes.String
 		users = append(users, user)
 	}
 	return users, nil
@@ -124,6 +136,20 @@ func (r *UserRepository) UpdatePassword(id, password string) error {
 	_, err = r.db.Exec(`
 		UPDATE users SET password = ?, updated_at = ? WHERE id = ?
 	`, string(hashedPassword), time.Now(), id)
+	return err
+}
+
+func (r *UserRepository) UpdateTwoFactor(id string, secret string, enabled bool, backupCodes string) error {
+	_, err := r.db.Exec(`
+		UPDATE users SET two_factor_secret = ?, two_factor_enabled = ?, backup_codes = ?, updated_at = ? WHERE id = ?
+	`, secret, enabled, backupCodes, time.Now(), id)
+	return err
+}
+
+func (r *UserRepository) UpdateBackupCodes(id string, backupCodes string) error {
+	_, err := r.db.Exec(`
+		UPDATE users SET backup_codes = ?, updated_at = ? WHERE id = ?
+	`, backupCodes, time.Now(), id)
 	return err
 }
 

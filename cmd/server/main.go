@@ -94,6 +94,7 @@ func main() {
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(userRepo, jwtManager)
+	twoFactorHandler := handlers.NewTwoFactorHandler(userRepo, jwtManager, "Central Logs")
 	userHandler := handlers.NewUserHandler(userRepo)
 	projectHandler := handlers.NewProjectHandler(projectRepo, userProjectRepo, logRepo)
 	memberHandler := handlers.NewMemberHandler(userRepo, userProjectRepo)
@@ -133,6 +134,7 @@ func main() {
 	// Auth routes (public)
 	auth := api.Group("/auth")
 	auth.Post("/login", authHandler.Login)
+	auth.Post("/2fa/verify", twoFactorHandler.VerifyLogin) // Verify 2FA during login
 
 	// Auth routes (protected)
 	authProtected := auth.Group("", authMiddleware.RequireAuth())
@@ -151,6 +153,14 @@ func main() {
 
 	// Admin API (JWT auth)
 	admin := api.Group("/admin", authMiddleware.RequireAuth())
+
+	// 2FA routes (protected, all authenticated users)
+	twoFactor := admin.Group("/2fa")
+	twoFactor.Get("/status", twoFactorHandler.GetStatus)
+	twoFactor.Post("/setup", twoFactorHandler.Setup)
+	twoFactor.Post("/verify", twoFactorHandler.Verify)
+	twoFactor.Post("/disable", twoFactorHandler.Disable)
+	twoFactor.Post("/backup-codes", twoFactorHandler.RegenerateBackupCodes)
 
 	// Users (admin only)
 	users := admin.Group("/users", authMiddleware.RequireAdmin())

@@ -58,14 +58,29 @@ class ApiClient {
   }
 
   // Auth
-  async login(username: string, password: string): Promise<{ token: string; user: User }> {
-    const result = await this.request<{ token: string; user: User }>(
+  async login(username: string, password: string): Promise<LoginResponse> {
+    const result = await this.request<LoginResponse>(
       '/auth/login',
       {
         method: 'POST',
         body: JSON.stringify({ username, password }),
       },
       true // Skip auth redirect for login endpoint
+    );
+    if (result.token) {
+      this.setToken(result.token);
+    }
+    return result;
+  }
+
+  async verify2FALogin(tempToken: string, code: string): Promise<{ token: string; user: User }> {
+    const result = await this.request<{ token: string; user: User }>(
+      '/auth/2fa/verify',
+      {
+        method: 'POST',
+        body: JSON.stringify({ temp_token: tempToken, code }),
+      },
+      true // Skip auth redirect
     );
     this.setToken(result.token);
     return result;
@@ -83,6 +98,38 @@ class ApiClient {
     await this.request('/auth/change-password', {
       method: 'PUT',
       body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+  }
+
+  // 2FA
+  async get2FAStatus(): Promise<TwoFactorStatusResponse> {
+    return this.request<TwoFactorStatusResponse>('/admin/2fa/status');
+  }
+
+  async setup2FA(): Promise<TwoFactorSetupResponse> {
+    return this.request<TwoFactorSetupResponse>('/admin/2fa/setup', {
+      method: 'POST',
+    });
+  }
+
+  async verify2FA(code: string): Promise<TwoFactorVerifyResponse> {
+    return this.request<TwoFactorVerifyResponse>('/admin/2fa/verify', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  }
+
+  async disable2FA(code: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>('/admin/2fa/disable', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  }
+
+  async regenerateBackupCodes(code: string): Promise<TwoFactorBackupCodesResponse> {
+    return this.request<TwoFactorBackupCodesResponse>('/admin/2fa/backup-codes', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
     });
   }
 
@@ -117,11 +164,12 @@ class ApiClient {
   }
 
   async getProject(id: string): Promise<Project> {
-    return this.request<Project>(`/admin/projects/${id}`);
+    const result = await this.request<{ project: Project }>(`/admin/projects/${id}`);
+    return result.project;
   }
 
-  async createProject(data: CreateProjectRequest): Promise<Project> {
-    return this.request<Project>('/admin/projects', {
+  async createProject(data: CreateProjectRequest): Promise<{ project: Project; api_key: string }> {
+    return this.request<{ project: Project; api_key: string }>('/admin/projects', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -263,8 +311,35 @@ export interface User {
   name: string;
   role: 'ADMIN' | 'USER';
   is_active: boolean;
+  two_factor_enabled: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface LoginResponse {
+  token?: string;
+  user?: User;
+  requires_2fa?: boolean;
+  temp_token?: string;
+}
+
+export interface TwoFactorSetupResponse {
+  secret: string;
+  qr_code: string;
+}
+
+export interface TwoFactorStatusResponse {
+  enabled: boolean;
+  backup_codes_count: number;
+}
+
+export interface TwoFactorVerifyResponse {
+  message: string;
+  backup_codes?: string[];
+}
+
+export interface TwoFactorBackupCodesResponse {
+  backup_codes: string[];
 }
 
 export interface CreateUserRequest {
@@ -280,10 +355,14 @@ export interface UpdateUserRequest {
   is_active?: boolean;
 }
 
+export type ProjectIconType = 'initials' | 'icon' | 'image';
+
 export interface Project {
   id: string;
   name: string;
   description: string;
+  icon_type: ProjectIconType;
+  icon_value: string;
   api_key?: string;
   api_key_prefix?: string;
   is_active?: boolean;
@@ -295,11 +374,15 @@ export interface Project {
 export interface CreateProjectRequest {
   name: string;
   description?: string;
+  icon_type?: ProjectIconType;
+  icon_value?: string;
 }
 
 export interface UpdateProjectRequest {
   name?: string;
   description?: string;
+  icon_type?: ProjectIconType;
+  icon_value?: string;
 }
 
 export interface ProjectMember {

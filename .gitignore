@@ -46,6 +46,7 @@ frontend/dist/
 .env
 .env.local
 .env.*.local
+load_env.sh
 
 # Don't ignore web/dist (embedded frontend)
 !web/dist/

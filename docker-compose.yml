@@ -1,5 +1,31 @@
-
 services:
+  central-logs:
+    image: ghcr.io/pandeptwidyaop/central-logs:latest
+    container_name: central-logs
+    ports:
+      - "3000:3000"
+    # Load environment variables from .env file
+    env_file:
+      - .env
+    # Or specify directly (overrides .env file)
+    # environment:
+    #   - SERVER_PORT=3000
+    #   - SERVER_ENV=production
+    #   - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./data:/data
+      - ./config.yaml:/app/config.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   redis:
     image: redis:7-alpine
     container_name: central-logs-redis

@@ -1,0 +1,37 @@
+{
+  "name": "Central Logs",
+  "short_name": "CentralLogs",
+  "description": "Centralized log aggregation platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/image.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["developer", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/",
+      "description": "View dashboard"
+    },
+    {
+      "name": "Logs",
+      "url": "/logs",
+      "description": "View all logs"
+    },
+    {
+      "name": "Projects",
+      "url": "/projects",
+      "description": "Manage projects"
+    }
+  ]
+}

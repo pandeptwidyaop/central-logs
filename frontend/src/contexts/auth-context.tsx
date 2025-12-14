@@ -1,0 +1,62 @@
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { api, type User } from '@/lib/api';
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = api.getToken();
+    if (token) {
+      api.getProfile()
+        .then(setUser)
+        .catch(() => {
+          api.setToken(null);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      // Use microtask to avoid synchronous setState in effect
+      queueMicrotask(() => setLoading(false));
+    }
+  }, []);
+
+  const login = async (username: string, password: string) => {
+    const result = await api.login(username, password);
+    setUser(result.user);
+  };
+
+  const logout = () => {
+    api.logout();
+    setUser(null);
+  };
+
+  const refreshUser = async () => {
+    const user = await api.getProfile();
+    setUser(user);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

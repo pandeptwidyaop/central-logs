@@ -1,0 +1,88 @@
+# Central Logs Configuration
+
+# Server Configuration
+server:
+  port: 3000
+  env: development  # development, production
+
+# Database
+database:
+  path: ./data/central-logs.db
+
+# Redis
+redis:
+  url: redis://localhost:6379
+
+# JWT Authentication
+jwt:
+  secret: change-this-secret-key-in-production
+  expiry: 24h
+
+# Web Push (VAPID) - Generate keys: https://vapidkeys.com/
+vapid:
+  public_key: "BCPvbPUl5BxOmMbJGV7Yorn_JB-EYfZM6JSn67Aum2-lGeRjtD5m2n0znCuf22K6MUCwZeGx_M29y5N07qq0Rdk"
+  private_key: "4dERHXcVs9WYkT8PtwFMid7mpMf_z1ejBQbnSAwfpdw"
+  subject: mailto:admin@example.com
+
+# Initial Admin User (created on first run)
+admin:
+  username: admin
+  password: changeme123
+
+# Log Retention Configuration
+retention:
+  enabled: true
+
+  # Global default retention (applies to all projects unless overridden)
+  default:
+    max_age: 30d
+    max_count: 100000
+
+  # Per-level retention (optional, overrides default for specific levels)
+  levels:
+    debug:
+      max_age: 7d
+      max_count: 10000
+    info:
+      max_age: 14d
+      max_count: 50000
+    warn:
+      max_age: 30d
+      max_count: 50000
+    error:
+      max_age: 90d
+      max_count: 100000
+    critical:
+      max_age: 365d
+      max_count: 0
+
+  # Cleanup schedule
+  cleanup:
+    enabled: true
+    schedule: "0 2 * * *"  # Run at 2 AM daily
+    batch_size: 1000
+
+  # Notification history retention
+  notification_history:
+    max_age: 7d
+
+# Rate Limiting
+rate_limit:
+  api:
+    requests_per_minute: 1000
+  channels:
+    telegram:
+      messages_per_minute: 20
+    discord:
+      messages_per_minute: 30
+    push:
+      notifications_per_minute: 60
+
+# WebSocket Configuration
+websocket:
+  enabled: true
+  ping_interval: 30s
+  pong_timeout: 10s
+  max_message_size: 512
+  read_buffer_size: 1024
+  write_buffer_size: 1024

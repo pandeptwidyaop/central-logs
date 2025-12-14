@@ -38,6 +38,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export function UsersPage() {
   const { user: currentUser } = useAuth();
@@ -45,7 +46,10 @@ export function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
@@ -105,7 +109,7 @@ export function UsersPage() {
     }
   };
 
-  const handleDeleteUser = async (user: User) => {
+  const openDeleteDialog = (user: User) => {
     if (user.id === currentUser?.id) {
       toast({
         title: 'Cannot delete yourself',
@@ -113,11 +117,17 @@ export function UsersPage() {
       });
       return;
     }
-    if (!confirm(`Delete user "${user.name}"?`)) return;
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    setDeleteLoading(true);
     try {
-      await api.deleteUser(user.id);
+      await api.deleteUser(userToDelete.id);
       toast({ title: 'User deleted successfully' });
+      setDeleteDialogOpen(false);
       fetchUsers();
     } catch (err) {
       toast({
@@ -125,6 +135,9 @@ export function UsersPage() {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive',
       });
+    } finally {
+      setDeleteLoading(false);
+      setUserToDelete(null);
     }
   };
 
@@ -201,7 +214,7 @@ export function UsersPage() {
                         <DropdownMenuItem
                           className="text-destructive"
                           disabled={user.id === currentUser?.id}
-                          onClick={() => handleDeleteUser(user)}
+                          onClick={() => openDeleteDialog(user)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete
@@ -309,6 +322,18 @@ export function UsersPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirm Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete User"
+        description={`Delete user "${userToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="destructive"
+        loading={deleteLoading}
+        onConfirm={handleDeleteUser}
+      />
     </div>
   );
 }

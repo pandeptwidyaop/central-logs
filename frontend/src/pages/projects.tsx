@@ -24,6 +24,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { ProjectIcon } from '@/components/project-icon';
 import { ProjectIconPicker } from '@/components/project-icon-picker';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -35,6 +36,11 @@ export function ProjectsPage() {
   const [newApiKey, setNewApiKey] = useState('');
   const [apiKeyProjectName, setApiKeyProjectName] = useState('');
   const [copiedKey, setCopiedKey] = useState(false);
+  // Confirm dialogs
+  const [rotateKeyDialogOpen, setRotateKeyDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [actionProject, setActionProject] = useState<Project | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
   const { toast } = useToast();
 
   // Form state for create
@@ -126,15 +132,20 @@ export function ProjectsPage() {
     }
   };
 
-  const handleRotateKey = async (project: Project) => {
-    if (!confirm(`Rotate API key for "${project.name}"? The old key will stop working immediately.`)) {
-      return;
-    }
+  const openRotateKeyDialog = (project: Project) => {
+    setActionProject(project);
+    setRotateKeyDialogOpen(true);
+  };
+
+  const handleRotateKey = async () => {
+    if (!actionProject) return;
+    setActionLoading(true);
     try {
-      const result = await api.rotateApiKey(project.id);
+      const result = await api.rotateApiKey(actionProject.id);
+      setRotateKeyDialogOpen(false);
       // Show API key dialog
       setNewApiKey(result.api_key);
-      setApiKeyProjectName(project.name);
+      setApiKeyProjectName(actionProject.name);
       setApiKeyDialogOpen(true);
       fetchProjects();
     } catch (err) {
@@ -143,6 +154,9 @@ export function ProjectsPage() {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive',
       });
+    } finally {
+      setActionLoading(false);
+      setActionProject(null);
     }
   };
 
@@ -152,13 +166,18 @@ export function ProjectsPage() {
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
-  const handleDeleteProject = async (project: Project) => {
-    if (!confirm(`Delete project "${project.name}"? This will delete all associated logs.`)) {
-      return;
-    }
+  const openDeleteDialog = (project: Project) => {
+    setActionProject(project);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteProject = async () => {
+    if (!actionProject) return;
+    setActionLoading(true);
     try {
-      await api.deleteProject(project.id);
+      await api.deleteProject(actionProject.id);
       toast({ title: 'Project deleted successfully' });
+      setDeleteDialogOpen(false);
       fetchProjects();
     } catch (err) {
       toast({
@@ -166,6 +185,9 @@ export function ProjectsPage() {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive',
       });
+    } finally {
+      setActionLoading(false);
+      setActionProject(null);
     }
   };
 
@@ -233,14 +255,14 @@ export function ProjectsPage() {
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleRotateKey(project)}>
+                    <DropdownMenuItem onClick={() => openRotateKeyDialog(project)}>
                       <Key className="mr-2 h-4 w-4" />
                       Rotate API Key
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive"
-                      onClick={() => handleDeleteProject(project)}
+                      onClick={() => openDeleteDialog(project)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
@@ -398,6 +420,30 @@ export function ProjectsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Rotate Key Confirm Dialog */}
+      <ConfirmDialog
+        open={rotateKeyDialogOpen}
+        onOpenChange={setRotateKeyDialogOpen}
+        title="Rotate API Key"
+        description={`Rotate API key for "${actionProject?.name}"? The old key will stop working immediately.`}
+        confirmText="Rotate Key"
+        variant="default"
+        loading={actionLoading}
+        onConfirm={handleRotateKey}
+      />
+
+      {/* Delete Confirm Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Project"
+        description={`Delete project "${actionProject?.name}"? This will delete all associated logs.`}
+        confirmText="Delete"
+        variant="destructive"
+        loading={actionLoading}
+        onConfirm={handleDeleteProject}
+      />
     </div>
   );
 }

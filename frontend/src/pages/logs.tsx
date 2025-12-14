@@ -31,6 +31,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeLogs } from '@/hooks/use-realtime-logs';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const levelColors: Record<string, 'debug' | 'info' | 'warn' | 'error' | 'critical'> = {
   DEBUG: 'debug',
@@ -55,6 +56,8 @@ export function LogsPage() {
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
   const [isLive, setIsLive] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const { toast } = useToast();
 
   // Handle new logs from WebSocket
@@ -139,13 +142,17 @@ export function LogsPage() {
     fetchLogs();
   }, [fetchLogs]);
 
-  const handleDeleteSelected = async () => {
+  const openDeleteDialog = () => {
     if (selectedLogs.length === 0) return;
-    if (!confirm(`Delete ${selectedLogs.length} selected logs?`)) return;
+    setDeleteDialogOpen(true);
+  };
 
+  const handleDeleteSelected = async () => {
+    setDeleteLoading(true);
     try {
       await api.deleteLogs(selectedLogs);
       toast({ title: `Deleted ${selectedLogs.length} logs` });
+      setDeleteDialogOpen(false);
       setSelectedLogs([]);
       fetchLogs();
     } catch (err) {
@@ -154,6 +161,8 @@ export function LogsPage() {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive',
       });
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -182,7 +191,7 @@ export function LogsPage() {
         </div>
         <div className="flex gap-2">
           {selectedLogs.length > 0 && (
-            <Button variant="destructive" onClick={handleDeleteSelected}>
+            <Button variant="destructive" onClick={openDeleteDialog}>
               <Trash2 className="mr-2 h-4 w-4" />
               Delete ({selectedLogs.length})
             </Button>
@@ -392,6 +401,18 @@ export function LogsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Logs Confirm Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Logs"
+        description={`Delete ${selectedLogs.length} selected log${selectedLogs.length > 1 ? 's' : ''}? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="destructive"
+        loading={deleteLoading}
+        onConfirm={handleDeleteSelected}
+      />
     </div>
   );
 }

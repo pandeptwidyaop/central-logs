@@ -50,6 +50,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { useAuth } from '@/contexts/auth-context';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'] as const;
 type LogLevel = (typeof LOG_LEVELS)[number];
@@ -106,6 +107,12 @@ export function ProjectDetailPage() {
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
   const [newApiKey, setNewApiKey] = useState('');
   const [copiedApiKey, setCopiedApiKey] = useState(false);
+  // Confirm dialogs
+  const [rotateKeyDialogOpen, setRotateKeyDialogOpen] = useState(false);
+  const [deleteProjectDialogOpen, setDeleteProjectDialogOpen] = useState(false);
+  const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<{ userId: string; username: string } | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   const {
@@ -250,11 +257,10 @@ export function ProjectDetailPage() {
 
   const handleRotateKey = async () => {
     if (!project) return;
-    if (!confirm(`Rotate API key for "${project.name}"? The old key will stop working immediately.`)) {
-      return;
-    }
+    setConfirmLoading(true);
     try {
       const result = await api.rotateApiKey(project.id);
+      setRotateKeyDialogOpen(false);
       // Show API key dialog with full key
       setNewApiKey(result.api_key);
       setApiKeyDialogOpen(true);
@@ -265,6 +271,8 @@ export function ProjectDetailPage() {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive',
       });
+    } finally {
+      setConfirmLoading(false);
     }
   };
 
@@ -276,9 +284,7 @@ export function ProjectDetailPage() {
 
   const handleDeleteProject = async () => {
     if (!project) return;
-    if (!confirm(`Delete project "${project.name}"? This will delete all associated logs.`)) {
-      return;
-    }
+    setConfirmLoading(true);
     try {
       await api.deleteProject(project.id);
       toast({ title: 'Project deleted successfully' });
@@ -289,6 +295,8 @@ export function ProjectDetailPage() {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive',
       });
+      setConfirmLoading(false);
+      setDeleteProjectDialogOpen(false);
     }
   };
 
@@ -358,12 +366,18 @@ export function ProjectDetailPage() {
     }
   };
 
-  const handleRemoveMember = async (userId: string, username: string) => {
-    if (!id) return;
-    if (!confirm(`Remove ${username} from this project?`)) return;
+  const openRemoveMemberDialog = (userId: string, username: string) => {
+    setMemberToRemove({ userId, username });
+    setRemoveMemberDialogOpen(true);
+  };
+
+  const handleRemoveMember = async () => {
+    if (!id || !memberToRemove) return;
+    setConfirmLoading(true);
     try {
-      await api.removeProjectMember(id, userId);
+      await api.removeProjectMember(id, memberToRemove.userId);
       toast({ title: 'Member removed' });
+      setRemoveMemberDialogOpen(false);
       fetchMembers();
     } catch (err) {
       toast({
@@ -371,6 +385,9 @@ export function ProjectDetailPage() {
         description: err instanceof Error ? err.message : 'Unknown error',
         variant: 'destructive',
       });
+    } finally {
+      setConfirmLoading(false);
+      setMemberToRemove(null);
     }
   };
 
@@ -426,7 +443,7 @@ export function ProjectDetailPage() {
             <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
-          <Button variant="destructive" onClick={handleDeleteProject}>
+          <Button variant="destructive" onClick={() => setDeleteProjectDialogOpen(true)}>
             <Trash2 className="mr-2 h-4 w-4" />
             Delete
           </Button>
@@ -505,7 +522,7 @@ export function ProjectDetailPage() {
               ) : (
                 <p className="text-muted-foreground">No API key available</p>
               )}
-              <Button variant="outline" onClick={handleRotateKey}>
+              <Button variant="outline" onClick={() => setRotateKeyDialogOpen(true)}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Rotate API Key
               </Button>
@@ -662,7 +679,7 @@ export function ProjectDetailPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleRemoveMember(member.user_id, member.user?.name || 'this user')}
+                              onClick={() => openRemoveMemberDialog(member.user_id, member.user?.name || 'this user')}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -910,7 +927,7 @@ export function ProjectDetailPage() {
                     This will permanently delete the project and all its logs
                   </p>
                 </div>
-                <Button variant="destructive" onClick={handleDeleteProject}>
+                <Button variant="destructive" onClick={() => setDeleteProjectDialogOpen(true)}>
                   Delete Project
                 </Button>
               </div>
@@ -1072,6 +1089,42 @@ export function ProjectDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Rotate Key Confirm Dialog */}
+      <ConfirmDialog
+        open={rotateKeyDialogOpen}
+        onOpenChange={setRotateKeyDialogOpen}
+        title="Rotate API Key"
+        description={`Rotate API key for "${project?.name}"? The old key will stop working immediately.`}
+        confirmText="Rotate Key"
+        variant="default"
+        loading={confirmLoading}
+        onConfirm={handleRotateKey}
+      />
+
+      {/* Delete Project Confirm Dialog */}
+      <ConfirmDialog
+        open={deleteProjectDialogOpen}
+        onOpenChange={setDeleteProjectDialogOpen}
+        title="Delete Project"
+        description={`Delete project "${project?.name}"? This will delete all associated logs.`}
+        confirmText="Delete"
+        variant="destructive"
+        loading={confirmLoading}
+        onConfirm={handleDeleteProject}
+      />
+
+      {/* Remove Member Confirm Dialog */}
+      <ConfirmDialog
+        open={removeMemberDialogOpen}
+        onOpenChange={setRemoveMemberDialogOpen}
+        title="Remove Member"
+        description={`Remove ${memberToRemove?.username} from this project?`}
+        confirmText="Remove"
+        variant="destructive"
+        loading={confirmLoading}
+        onConfirm={handleRemoveMember}
+      />
     </div>
   );
 }

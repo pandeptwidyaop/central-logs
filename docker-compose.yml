@@ -1,6 +1,13 @@
 services:
   central-logs:
-    image: ghcr.io/pandeptwidyaop/central-logs:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-dev}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    image: central-logs:local
     container_name: central-logs
     ports:
       - "3000:3000"

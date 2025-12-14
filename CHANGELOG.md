@@ -11,8 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Laravel-style database migration system with tracking
 - Comprehensive test suite (119+ tests)
 - Migration documentation in `internal/database/MIGRATIONS.md`
+- Complete open source documentation (README, CONTRIBUTING, LICENSE)
+- GitHub issue and PR templates
 
-## [1.0.0] - 2025-01-15
+## [1.0.0] - 2025-12-14
+
+### Features
+
+* **ci:** use semantic-release for automated versioning ([5a34dac](https://github.com/pandeptwidyaop/central-logs/commit/5a34dac6f342d234f73961e1a201c129c376e3ba))
+* **ui:** replace native confirm dialogs with custom ConfirmDialog component ([54eccd6](https://github.com/pandeptwidyaop/central-logs/commit/54eccd69fd65eac9ea4fb1da5d71e3a4c9ce4576))
 
 ### Added
 - Initial release
@@ -63,5 +70,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ESLint + Prettier for frontend
 - golangci-lint for backend
 
-[Unreleased]: https://github.com/yourusername/central-logs/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/yourusername/central-logs/releases/tag/v1.0.0
+[Unreleased]: https://github.com/pandeptwidyaop/central-logs/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/pandeptwidyaop/central-logs/releases/tag/v1.0.0

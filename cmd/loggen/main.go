@@ -151,11 +151,11 @@ func main() {
 		if !*quiet {
 			fmt.Printf("Generating logs for %v (until %s)\n", *duration, endTime.Format("15:04:05"))
 			fmt.Printf("Interval: %v - %v (random)\n", *minInterval, *maxInterval)
-			fmt.Println("Press Ctrl+C to stop early.\n")
+			fmt.Println("Press Ctrl+C to stop early.")
 		}
 	} else {
 		if !*quiet {
-			fmt.Println("Generating logs indefinitely. Press Ctrl+C to stop.\n")
+			fmt.Println("Generating logs indefinitely. Press Ctrl+C to stop.")
 		}
 	}
 

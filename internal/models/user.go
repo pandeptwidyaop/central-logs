@@ -94,6 +94,25 @@ func (r *UserRepository) GetByUsername(username string) (*User, error) {
 	return user, nil
 }
 
+func (r *UserRepository) GetByEmail(email string) (*User, error) {
+	user := &User{}
+	var twoFactorSecret, backupCodes sql.NullString
+	err := r.db.QueryRow(`
+		SELECT id, username, email, password, name, role, is_active, two_factor_secret, two_factor_enabled, backup_codes, created_at, updated_at
+		FROM users WHERE email = ?
+	`, email).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Name, &user.Role, &user.IsActive, &twoFactorSecret, &user.TwoFactorEnabled, &backupCodes, &user.CreatedAt, &user.UpdatedAt)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	user.TwoFactorSecret = twoFactorSecret.String
+	user.BackupCodes = backupCodes.String
+	return user, nil
+}
+
 func (r *UserRepository) GetAll() ([]*User, error) {
 	rows, err := r.db.Query(`
 		SELECT id, username, email, password, name, role, is_active, two_factor_secret, two_factor_enabled, backup_codes, created_at, updated_at

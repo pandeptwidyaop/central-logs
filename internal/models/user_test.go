@@ -19,13 +19,17 @@ func setupTestDB(t *testing.T) *sql.DB {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id TEXT PRIMARY KEY,
-			email TEXT UNIQUE NOT NULL,
+			username TEXT UNIQUE NOT NULL,
+			email TEXT,
 			password TEXT NOT NULL,
 			name TEXT NOT NULL,
 			role TEXT NOT NULL DEFAULT 'USER',
-			is_active BOOLEAN NOT NULL DEFAULT 1,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			is_active INTEGER NOT NULL DEFAULT 1,
+			two_factor_secret TEXT DEFAULT '',
+			two_factor_enabled INTEGER DEFAULT 0,
+			backup_codes TEXT DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
 	if err != nil {
@@ -274,6 +278,7 @@ func TestUserRepository_GetAll(t *testing.T) {
 	// Create multiple users
 	for i := 0; i < 5; i++ {
 		user := &models.User{
+			Username: "testuser" + string(rune('0'+i)),
 			Email:    "test" + string(rune('0'+i)) + "@example.com",
 			Password: "password123",
 			Name:     "Test User " + string(rune('0'+i)),

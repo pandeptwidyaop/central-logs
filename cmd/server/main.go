@@ -109,6 +109,7 @@ func main() {
 	channelHandler := handlers.NewChannelHandler(channelRepo)
 	statsHandler := handlers.NewStatsHandler(logRepo, projectRepo, userProjectRepo, userRepo)
 	pushHandler := handlers.NewPushHandler(subscriptionRepo, cfg)
+	versionHandler := handlers.NewVersionHandler(Version)
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
@@ -146,6 +147,9 @@ func main() {
 			"git_commit": GitCommit,
 		})
 	})
+
+	// Check for updates endpoint (public)
+	api.Get("/version/check", versionHandler.CheckUpdate)
 
 	// Auth routes (public)
 	auth := api.Group("/auth")

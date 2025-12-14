@@ -28,13 +28,17 @@ func setupAuthTestDB(t *testing.T) *sql.DB {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id TEXT PRIMARY KEY,
-			email TEXT UNIQUE NOT NULL,
+			username TEXT UNIQUE NOT NULL,
+			email TEXT,
 			password TEXT NOT NULL,
 			name TEXT NOT NULL,
 			role TEXT NOT NULL DEFAULT 'USER',
-			is_active BOOLEAN NOT NULL DEFAULT 1,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			is_active INTEGER NOT NULL DEFAULT 1,
+			two_factor_secret TEXT DEFAULT '',
+			two_factor_enabled INTEGER DEFAULT 0,
+			backup_codes TEXT DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
 	if err != nil {
@@ -54,6 +58,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 
 	// Create a test user
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -69,7 +74,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 	app.Post("/login", authHandler.Login)
 
 	reqBody := map[string]string{
-		"email":    "test@example.com",
+		"username": "testuser",
 		"password": "password123",
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
@@ -179,6 +184,7 @@ func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 
 	// Create a test user
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -191,7 +197,7 @@ func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 	app.Post("/login", authHandler.Login)
 
 	reqBody := map[string]string{
-		"email":    "test@example.com",
+		"username": "testuser",
 		"password": "wrongpassword",
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
@@ -220,7 +226,7 @@ func TestAuthHandler_Login_UserNotFound(t *testing.T) {
 	app.Post("/login", authHandler.Login)
 
 	reqBody := map[string]string{
-		"email":    "notfound@example.com",
+		"username": "notfound",
 		"password": "password123",
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
@@ -247,6 +253,7 @@ func TestAuthHandler_Login_InactiveUser(t *testing.T) {
 
 	// Create an inactive user
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -259,7 +266,7 @@ func TestAuthHandler_Login_InactiveUser(t *testing.T) {
 	app.Post("/login", authHandler.Login)
 
 	reqBody := map[string]string{
-		"email":    "test@example.com",
+		"username": "testuser",
 		"password": "password123",
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
@@ -286,6 +293,7 @@ func TestAuthHandler_Me_Success(t *testing.T) {
 
 	// Create a test user
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -355,6 +363,7 @@ func TestAuthHandler_UpdateProfile_Success(t *testing.T) {
 
 	// Create a test user
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -410,6 +419,7 @@ func TestAuthHandler_UpdateProfile_InvalidBody(t *testing.T) {
 	authHandler := handlers.NewAuthHandler(userRepo, jwtManager)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -503,6 +513,7 @@ func TestAuthHandler_ChangePassword_Success(t *testing.T) {
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -556,6 +567,7 @@ func TestAuthHandler_ChangePassword_InvalidBody(t *testing.T) {
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -594,6 +606,7 @@ func TestAuthHandler_ChangePassword_MissingFields(t *testing.T) {
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -652,6 +665,7 @@ func TestAuthHandler_ChangePassword_PasswordTooShort(t *testing.T) {
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -695,6 +709,7 @@ func TestAuthHandler_ChangePassword_WrongCurrentPassword(t *testing.T) {
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",

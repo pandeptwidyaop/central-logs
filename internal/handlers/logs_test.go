@@ -121,7 +121,7 @@ func TestLogHandler_CreateLog_Success(t *testing.T) {
 	userProjectRepo := models.NewUserProjectRepository(db)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(projectRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	// Create a test project
 	project := &models.Project{
@@ -194,7 +194,7 @@ func TestLogHandler_CreateLog_InvalidAPIKey(t *testing.T) {
 	userProjectRepo := models.NewUserProjectRepository(db)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(projectRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	app := fiber.New()
 	app.Use(apiKeyMiddleware.RequireAPIKey())
@@ -229,7 +229,7 @@ func TestLogHandler_CreateLog_InvalidBody(t *testing.T) {
 	userProjectRepo := models.NewUserProjectRepository(db)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(projectRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	project := &models.Project{
 		Name:     "Test Project",
@@ -265,7 +265,7 @@ func TestLogHandler_CreateLog_MissingMessage(t *testing.T) {
 	userProjectRepo := models.NewUserProjectRepository(db)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(projectRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	project := &models.Project{
 		Name:     "Test Project",
@@ -305,7 +305,7 @@ func TestLogHandler_CreateLog_WithTimestamp(t *testing.T) {
 	userProjectRepo := models.NewUserProjectRepository(db)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(projectRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	project := &models.Project{
 		Name:     "Test Project",
@@ -357,7 +357,7 @@ func TestLogHandler_CreateBatchLogs_Success(t *testing.T) {
 	userProjectRepo := models.NewUserProjectRepository(db)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(projectRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	project := &models.Project{
 		Name:     "Test Project",
@@ -422,7 +422,7 @@ func TestLogHandler_CreateBatchLogs_EmptyArray(t *testing.T) {
 	userProjectRepo := models.NewUserProjectRepository(db)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(projectRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	project := &models.Project{
 		Name:     "Test Project",
@@ -462,7 +462,7 @@ func TestLogHandler_CreateBatchLogs_TooManyLogs(t *testing.T) {
 	userProjectRepo := models.NewUserProjectRepository(db)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(projectRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	project := &models.Project{
 		Name:     "Test Project",
@@ -511,7 +511,7 @@ func TestLogHandler_CreateBatchLogs_SkipsInvalidEntries(t *testing.T) {
 	userProjectRepo := models.NewUserProjectRepository(db)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(projectRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	project := &models.Project{
 		Name:     "Test Project",
@@ -575,7 +575,7 @@ func TestLogHandler_ListLogs_Admin(t *testing.T) {
 	jwtManager := utils.NewJWTManager("test-secret", 24*time.Hour)
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	admin := &models.User{
 		Email:    "admin@example.com",
@@ -643,7 +643,7 @@ func TestLogHandler_ListLogs_RegularUser(t *testing.T) {
 	jwtManager := utils.NewJWTManager("test-secret", 24*time.Hour)
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	user := &models.User{
 		Email:    "user@example.com",
@@ -737,7 +737,7 @@ func TestLogHandler_ListLogs_WithFilters(t *testing.T) {
 	jwtManager := utils.NewJWTManager("test-secret", 24*time.Hour)
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	admin := &models.User{
 		Email:    "admin@example.com",
@@ -815,7 +815,7 @@ func TestLogHandler_GetLog_Success(t *testing.T) {
 	jwtManager := utils.NewJWTManager("test-secret", 24*time.Hour)
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	user := &models.User{
 		Email:    "user@example.com",
@@ -889,7 +889,7 @@ func TestLogHandler_GetLog_NotFound(t *testing.T) {
 	jwtManager := utils.NewJWTManager("test-secret", 24*time.Hour)
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	user := &models.User{
 		Email:    "user@example.com",
@@ -931,7 +931,7 @@ func TestLogHandler_GetLog_AccessDenied(t *testing.T) {
 	jwtManager := utils.NewJWTManager("test-secret", 24*time.Hour)
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 
 	user := &models.User{
 		Email:    "user@example.com",

@@ -43,25 +43,31 @@ func setupTestApp(t *testing.T) *TestApp {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id TEXT PRIMARY KEY,
-			email TEXT UNIQUE NOT NULL,
+			username TEXT UNIQUE NOT NULL,
+			email TEXT,
 			password TEXT NOT NULL,
 			name TEXT NOT NULL,
 			role TEXT NOT NULL DEFAULT 'USER',
-			is_active BOOLEAN NOT NULL DEFAULT 1,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			is_active INTEGER NOT NULL DEFAULT 1,
+			two_factor_secret TEXT DEFAULT '',
+			two_factor_enabled INTEGER DEFAULT 0,
+			backup_codes TEXT DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
 		CREATE TABLE IF NOT EXISTS projects (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
 			description TEXT,
-			api_key TEXT UNIQUE NOT NULL,
+			api_key TEXT NOT NULL,
 			api_key_prefix TEXT NOT NULL,
-			is_active BOOLEAN NOT NULL DEFAULT 1,
+			is_active INTEGER NOT NULL DEFAULT 1,
 			retention_config TEXT,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			icon_type TEXT DEFAULT 'initials',
+			icon_value TEXT DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
 		CREATE TABLE IF NOT EXISTS user_projects (
@@ -119,6 +125,7 @@ func setupTestApp(t *testing.T) *TestApp {
 
 	// Create test users
 	adminUser := &models.User{
+		Username: "admin",
 		Email:    "admin@example.com",
 		Password: "password123",
 		Name:     "Admin User",
@@ -128,6 +135,7 @@ func setupTestApp(t *testing.T) *TestApp {
 	userRepo.Create(adminUser)
 
 	regularUser := &models.User{
+		Username: "user",
 		Email:    "user@example.com",
 		Password: "password123",
 		Name:     "Regular User",
@@ -150,7 +158,7 @@ func setupTestApp(t *testing.T) *TestApp {
 	userHandler := handlers.NewUserHandler(userRepo)
 	projectHandler := handlers.NewProjectHandler(projectRepo, userProjectRepo, logRepo)
 	memberHandler := handlers.NewMemberHandler(userRepo, userProjectRepo)
-	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil)
+	logHandler := handlers.NewLogHandler(logRepo, channelRepo, userProjectRepo, nil, nil, nil)
 	statsHandler := handlers.NewStatsHandler(logRepo, projectRepo, userProjectRepo, userRepo)
 
 	// Create Fiber app
@@ -242,7 +250,7 @@ func TestLogin_Success(t *testing.T) {
 	defer ta.Close()
 
 	body := map[string]string{
-		"email":    "admin@example.com",
+		"username": "admin",
 		"password": "password123",
 	}
 	jsonBody, _ := json.Marshal(body)
@@ -275,7 +283,7 @@ func TestLogin_InvalidCredentials(t *testing.T) {
 	defer ta.Close()
 
 	body := map[string]string{
-		"email":    "admin@example.com",
+		"username": "admin",
 		"password": "wrongpassword",
 	}
 	jsonBody, _ := json.Marshal(body)
@@ -355,6 +363,7 @@ func TestCreateUser_Success(t *testing.T) {
 	defer ta.Close()
 
 	body := map[string]string{
+		"username": "newuser",
 		"email":    "newuser@example.com",
 		"password": "password123",
 		"name":     "New User",
@@ -649,7 +658,7 @@ func TestChangePassword_Success(t *testing.T) {
 
 	// Verify new password works
 	loginBody := map[string]string{
-		"email":    "admin@example.com",
+		"username": "admin",
 		"password": "newpassword123",
 	}
 	loginJson, _ := json.Marshal(loginBody)

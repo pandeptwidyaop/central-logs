@@ -105,7 +105,8 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 }
 
 type UpdateProfileRequest struct {
-	Name string `json:"name"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
@@ -125,6 +126,10 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 
 	if req.Name != "" {
 		user.Name = req.Name
+	}
+
+	if req.Email != "" {
+		user.Email = req.Email
 	}
 
 	if err := h.userRepo.Update(user); err != nil {

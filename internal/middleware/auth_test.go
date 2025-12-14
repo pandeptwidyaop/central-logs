@@ -24,13 +24,17 @@ func setupAuthTestDB(t *testing.T) *sql.DB {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id TEXT PRIMARY KEY,
-			email TEXT UNIQUE NOT NULL,
+			username TEXT UNIQUE NOT NULL,
+			email TEXT,
 			password TEXT NOT NULL,
 			name TEXT NOT NULL,
 			role TEXT NOT NULL DEFAULT 'USER',
-			is_active BOOLEAN NOT NULL DEFAULT 1,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			is_active INTEGER NOT NULL DEFAULT 1,
+			two_factor_secret TEXT DEFAULT '',
+			two_factor_enabled INTEGER DEFAULT 0,
+			backup_codes TEXT DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
 	if err != nil {
@@ -50,6 +54,7 @@ func TestAuthMiddleware_RequireAuth_ValidToken(t *testing.T) {
 
 	// Create a test user
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -153,6 +158,7 @@ func TestAuthMiddleware_RequireAuth_ExpiredToken(t *testing.T) {
 
 	// Create a test user
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -232,6 +238,7 @@ func TestAuthMiddleware_RequireAdmin_AdminUser(t *testing.T) {
 
 	// Create an admin user
 	user := &models.User{
+		Username: "admin",
 		Email:    "admin@example.com",
 		Password: "password123",
 		Name:     "Admin User",
@@ -311,6 +318,7 @@ func TestGetUser_ReturnsUser(t *testing.T) {
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",

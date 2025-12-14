@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api, type TwoFactorSetupResponse, type TwoFactorStatusResponse, type VersionInfo } from '@/lib/api';
+import { api, type TwoFactorSetupResponse, type TwoFactorStatusResponse, type VersionInfo, type UpdateCheckInfo } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, ShieldCheck, ShieldOff, Copy, Key, RefreshCw, Info } from 'lucide-react';
+import { Shield, ShieldCheck, ShieldOff, Copy, Key, RefreshCw, Info, Download, CheckCircle, ExternalLink } from 'lucide-react';
 import QRCode from 'qrcode';
 
 export function SettingsPage() {
@@ -24,6 +24,8 @@ export function SettingsPage() {
 
   // Version state
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+  const [updateInfo, setUpdateInfo] = useState<UpdateCheckInfo | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   // 2FA state
   const [twoFAStatus, setTwoFAStatus] = useState<TwoFactorStatusResponse | null>(null);
@@ -50,6 +52,34 @@ export function SettingsPage() {
       setVersionInfo(info);
     } catch {
       // Failed to fetch version info
+    }
+  };
+
+  const checkForUpdates = async () => {
+    setCheckingUpdate(true);
+    setUpdateInfo(null);
+    try {
+      const info = await api.checkForUpdates();
+      setUpdateInfo(info);
+      if (info.update_available) {
+        toast({
+          title: 'Update Available',
+          description: `Version ${info.latest_version} is available`,
+        });
+      } else {
+        toast({
+          title: 'Up to date',
+          description: 'You are running the latest version',
+        });
+      }
+    } catch (err) {
+      toast({
+        title: 'Failed to check for updates',
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setCheckingUpdate(false);
     }
   };
 
@@ -383,7 +413,7 @@ export function SettingsPage() {
             </CardTitle>
             <CardDescription>Application version information</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <Label className="text-muted-foreground">Version</Label>
@@ -401,6 +431,80 @@ export function SettingsPage() {
                 <Label className="text-muted-foreground">Git Commit</Label>
                 <p className="font-mono text-sm">{versionInfo?.git_commit || '-'}</p>
               </div>
+            </div>
+
+            {/* Update Check Section */}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Check for Updates</p>
+                  <p className="text-sm text-muted-foreground">
+                    Check if a newer version is available on GitHub
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={checkForUpdates}
+                  disabled={checkingUpdate}
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${checkingUpdate ? 'animate-spin' : ''}`} />
+                  {checkingUpdate ? 'Checking...' : 'Check for Updates'}
+                </Button>
+              </div>
+
+              {/* Update Status */}
+              {updateInfo && (
+                <div className={`mt-4 p-4 rounded-lg ${
+                  updateInfo.update_available
+                    ? 'bg-blue-500/10 border border-blue-500/20'
+                    : 'bg-green-500/10 border border-green-500/20'
+                }`}>
+                  {updateInfo.update_available ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Download className="h-5 w-5 text-blue-600" />
+                        <span className="font-medium text-blue-600">
+                          Update Available: {updateInfo.latest_version}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Current version: {updateInfo.current_version}
+                      </p>
+                      {updateInfo.published_at && (
+                        <p className="text-sm text-muted-foreground">
+                          Released: {new Date(updateInfo.published_at).toLocaleDateString()}
+                        </p>
+                      )}
+                      {updateInfo.release_notes && (
+                        <div className="mt-2">
+                          <Label className="text-muted-foreground">Release Notes</Label>
+                          <p className="text-sm mt-1 whitespace-pre-wrap line-clamp-4">
+                            {updateInfo.release_notes}
+                          </p>
+                        </div>
+                      )}
+                      {updateInfo.release_url && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => window.open(updateInfo.release_url, '_blank')}
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          View Release
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <span className="font-medium text-green-600">
+                        You are running the latest version
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -59,6 +59,9 @@ func (db *DB) Migrate() error {
 			name TEXT NOT NULL,
 			role TEXT NOT NULL DEFAULT 'USER',
 			is_active INTEGER NOT NULL DEFAULT 1,
+			two_factor_secret TEXT DEFAULT '',
+			two_factor_enabled INTEGER DEFAULT 0,
+			backup_codes TEXT DEFAULT '',
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
@@ -72,6 +75,8 @@ func (db *DB) Migrate() error {
 			api_key_prefix TEXT NOT NULL,
 			is_active INTEGER NOT NULL DEFAULT 1,
 			retention_config TEXT,
+			icon_type TEXT DEFAULT 'initials',
+			icon_value TEXT DEFAULT '',
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,

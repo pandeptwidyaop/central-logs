@@ -307,6 +307,10 @@ class ApiClient {
   async getVersion(): Promise<VersionInfo> {
     return this.request<VersionInfo>('/version', {}, true);
   }
+
+  async checkForUpdates(): Promise<UpdateCheckInfo> {
+    return this.request<UpdateCheckInfo>('/version/check', {}, true);
+  }
 }
 
 // Types
@@ -486,6 +490,15 @@ export interface VersionInfo {
   version: string;
   build_time: string;
   git_commit: string;
+}
+
+export interface UpdateCheckInfo {
+  current_version: string;
+  latest_version: string;
+  update_available: boolean;
+  release_url?: string;
+  release_notes?: string;
+  published_at?: string;
 }
 
 export const api = new ApiClient();

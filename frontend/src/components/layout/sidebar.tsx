@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -12,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
+import { api } from '@/lib/api';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Tooltip,
@@ -34,6 +36,11 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.getVersion().then((info) => setVersion(info.version)).catch(() => {});
+  }, []);
 
   const filteredNav = navigation.filter(
     (item) => !item.adminOnly || user?.role === 'ADMIN'
@@ -161,6 +168,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               <TooltipContent side="top">Sign out</TooltipContent>
             </Tooltip>
           </div>
+          {version && (
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              v{version}
+            </p>
+          )}
         </div>
       </aside>
     </>

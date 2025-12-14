@@ -459,6 +459,7 @@ func TestAuthHandler_UpdateProfile_EmailAlreadyInUse(t *testing.T) {
 
 	// Create first user
 	user1 := &models.User{
+		Username: "user1",
 		Email:    "user1@example.com",
 		Password: "password123",
 		Name:     "User 1",
@@ -469,6 +470,7 @@ func TestAuthHandler_UpdateProfile_EmailAlreadyInUse(t *testing.T) {
 
 	// Create second user
 	user2 := &models.User{
+		Username: "user2",
 		Email:    "user2@example.com",
 		Password: "password123",
 		Name:     "User 2",

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Loader2, AlertCircle, Eye, EyeOff, Shield, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,13 @@ export function LoginPage() {
   const [requires2FA, setRequires2FA] = useState(false);
   const [tempToken, setTempToken] = useState('');
   const [twoFACode, setTwoFACode] = useState('');
+
+  // Version state
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.getVersion().then((info) => setVersion(info.version)).catch(() => {});
+  }, []);
 
   if (user) {
     return <Navigate to="/" replace />;
@@ -103,7 +111,7 @@ export function LoginPage() {
         </div>
 
         <p className="text-white/60 text-sm">
-          &copy; {new Date().getFullYear()} Central Logs. All rights reserved.
+          Open Source under MIT License
         </p>
       </div>
 
@@ -198,7 +206,7 @@ export function LoginPage() {
                     <Input
                       id="username"
                       type="text"
-                      placeholder="admin"
+                      placeholder="Enter your username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       required
@@ -248,9 +256,10 @@ export function LoginPage() {
             </CardContent>
           </Card>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Secure log management for your applications
-          </p>
+          <div className="text-center text-sm text-muted-foreground space-y-1">
+            <p>Secure log management for your applications</p>
+            {version && <p className="text-xs">v{version}</p>}
+          </div>
         </div>
       </div>
     </div>

@@ -28,13 +28,17 @@ func setupLogTestDB(t *testing.T) *sql.DB {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id TEXT PRIMARY KEY,
-			email TEXT UNIQUE NOT NULL,
+			username TEXT UNIQUE NOT NULL,
+			email TEXT,
 			password TEXT NOT NULL,
 			name TEXT NOT NULL,
 			role TEXT NOT NULL DEFAULT 'USER',
-			is_active BOOLEAN NOT NULL DEFAULT 1,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			is_active INTEGER NOT NULL DEFAULT 1,
+			two_factor_secret TEXT DEFAULT '',
+			two_factor_enabled INTEGER DEFAULT 0,
+			backup_codes TEXT DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
 	if err != nil {
@@ -46,12 +50,14 @@ func setupLogTestDB(t *testing.T) *sql.DB {
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
 			description TEXT,
-			api_key TEXT UNIQUE NOT NULL,
+			api_key TEXT NOT NULL,
 			api_key_prefix TEXT NOT NULL,
-			is_active BOOLEAN NOT NULL DEFAULT 1,
+			is_active INTEGER NOT NULL DEFAULT 1,
 			retention_config TEXT,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			icon_type TEXT DEFAULT 'initials',
+			icon_value TEXT DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
 	if err != nil {

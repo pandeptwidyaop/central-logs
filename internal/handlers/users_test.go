@@ -25,13 +25,17 @@ func setupUserTestDB(t *testing.T) *sql.DB {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id TEXT PRIMARY KEY,
-			email TEXT UNIQUE NOT NULL,
+			username TEXT UNIQUE NOT NULL,
+			email TEXT,
 			password TEXT NOT NULL,
 			name TEXT NOT NULL,
 			role TEXT NOT NULL DEFAULT 'USER',
-			is_active BOOLEAN NOT NULL DEFAULT 1,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			is_active INTEGER NOT NULL DEFAULT 1,
+			two_factor_secret TEXT DEFAULT '',
+			two_factor_enabled INTEGER DEFAULT 0,
+			backup_codes TEXT DEFAULT '',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
 	if err != nil {
@@ -51,6 +55,7 @@ func TestUserHandler_ListUsers_Success(t *testing.T) {
 	// Create test users
 	for i := 0; i < 3; i++ {
 		user := &models.User{
+			Username: "user" + string(rune('0'+i)),
 			Email:    "user" + string(rune('0'+i)) + "@example.com",
 			Password: "password123",
 			Name:     "User " + string(rune('0'+i)),
@@ -94,6 +99,7 @@ func TestUserHandler_CreateUser_Success(t *testing.T) {
 	app.Post("/users", userHandler.CreateUser)
 
 	reqBody := map[string]interface{}{
+		"username": "newuser",
 		"email":    "newuser@example.com",
 		"password": "password123",
 		"name":     "New User",
@@ -235,6 +241,7 @@ func TestUserHandler_CreateUser_EmailAlreadyExists(t *testing.T) {
 
 	// Create existing user
 	existingUser := &models.User{
+		Username: "existing",
 		Email:    "existing@example.com",
 		Password: "password123",
 		Name:     "Existing User",
@@ -311,6 +318,7 @@ func TestUserHandler_GetUser_Success(t *testing.T) {
 	userHandler := handlers.NewUserHandler(userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -370,6 +378,7 @@ func TestUserHandler_UpdateUser_Success(t *testing.T) {
 	userHandler := handlers.NewUserHandler(userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -457,6 +466,7 @@ func TestUserHandler_UpdateUser_InvalidBody(t *testing.T) {
 	userHandler := handlers.NewUserHandler(userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -489,6 +499,7 @@ func TestUserHandler_UpdateUser_EmailConflict(t *testing.T) {
 	userHandler := handlers.NewUserHandler(userRepo)
 
 	user1 := &models.User{
+		Username: "user1",
 		Email:    "user1@example.com",
 		Password: "password123",
 		Name:     "User 1",
@@ -498,6 +509,7 @@ func TestUserHandler_UpdateUser_EmailConflict(t *testing.T) {
 	userRepo.Create(user1)
 
 	user2 := &models.User{
+		Username: "user2",
 		Email:    "user2@example.com",
 		Password: "password123",
 		Name:     "User 2",
@@ -534,6 +546,7 @@ func TestUserHandler_DeleteUser_Success(t *testing.T) {
 	userHandler := handlers.NewUserHandler(userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -570,6 +583,7 @@ func TestUserHandler_ResetPassword_Success(t *testing.T) {
 	userHandler := handlers.NewUserHandler(userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -616,6 +630,7 @@ func TestUserHandler_ResetPassword_InvalidBody(t *testing.T) {
 	userHandler := handlers.NewUserHandler(userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
@@ -648,6 +663,7 @@ func TestUserHandler_ResetPassword_PasswordTooShort(t *testing.T) {
 	userHandler := handlers.NewUserHandler(userRepo)
 
 	user := &models.User{
+		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",

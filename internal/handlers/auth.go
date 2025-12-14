@@ -129,6 +129,13 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 	}
 
 	if req.Email != "" {
+		// Check if email is already in use by another user
+		existingUser, _ := h.userRepo.GetByEmail(req.Email)
+		if existingUser != nil && existingUser.ID != user.ID {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"error": "Email already in use",
+			})
+		}
 		user.Email = req.Email
 	}
 

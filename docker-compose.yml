@@ -4,14 +4,18 @@ services:
     container_name: central-logs
     ports:
       - "3000:3000"
-    # Load environment variables from .env file
+    # IMPORTANT: Create .env file first! Copy from .env.production.example:
+    #   cp .env.production.example .env
+    # Then edit .env with your secure values
     env_file:
-      - .env
-    # Or specify directly (overrides .env file)
+      - .env  # Docker Compose will fail if this file doesn't exist
+    # Alternative: Specify directly (not recommended for production)
     # environment:
     #   - SERVER_PORT=3000
     #   - SERVER_ENV=production
     #   - REDIS_URL=redis://redis:6379
+    #   - JWT_SECRET=your-secret-here
+    #   - ADMIN_PASSWORD=your-password-here
     volumes:
       - ./data:/data
       - ./config.yaml:/app/config.yaml:ro

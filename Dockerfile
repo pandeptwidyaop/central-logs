@@ -64,10 +64,6 @@ RUN mkdir -p /app/data
 # Expose port
 EXPOSE 3000
 
-# Set environment variables
-ENV CL_SERVER_PORT=3000
-ENV CL_DATABASE_PATH=/app/data/central-logs.db
-
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/version || exit 1

@@ -2,32 +2,29 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-release:
-    name: Build and Release
+  release:
+    name: Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-          cache: true
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,60 +33,63 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Get version info
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Get next version (dry-run)
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          dry_run: true
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if release needed
+        id: check
+        run: |
+          if [ "${{ steps.semantic.outputs.new_release_published }}" = "true" ]; then
+            echo "RELEASE_VERSION=${{ steps.semantic.outputs.new_release_version }}" >> $GITHUB_OUTPUT
+            echo "DO_RELEASE=true" >> $GITHUB_OUTPUT
+            echo "New version will be: ${{ steps.semantic.outputs.new_release_version }}"
+          else
+            echo "DO_RELEASE=false" >> $GITHUB_OUTPUT
+            echo "No new release needed"
+          fi
+
+      - name: Set version info
+        if: steps.check.outputs.DO_RELEASE == 'true'
         id: version
         run: |
-          echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "VERSION=v${{ steps.check.outputs.RELEASE_VERSION }}" >> $GITHUB_OUTPUT
           echo "BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_OUTPUT
           echo "GIT_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Run tests
-        run: go test -v ./...
-
       - name: Build frontend
+        if: steps.check.outputs.DO_RELEASE == 'true'
         run: |
-          cd frontend && npm ci && npm run build
+          cd frontend && npm run build
           mkdir -p ../web/dist
           cp -r dist/* ../web/dist/
 
       - name: Build Linux binary
+        if: steps.check.outputs.DO_RELEASE == 'true'
         run: |
           CGO_ENABLED=1 go build \
             -ldflags "-X main.Version=${{ steps.version.outputs.VERSION }} -X main.BuildTime=${{ steps.version.outputs.BUILD_TIME }} -X main.GitCommit=${{ steps.version.outputs.GIT_COMMIT }}" \
             -o bin/central-logs-linux-amd64 \
             ./cmd/server
 
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VERSION=${{ steps.version.outputs.VERSION }}
-            BUILD_TIME=${{ steps.version.outputs.BUILD_TIME }}
-            GIT_COMMIT=${{ steps.version.outputs.GIT_COMMIT }}
-
       - name: Create tarball
+        if: steps.check.outputs.DO_RELEASE == 'true'
         run: |
           mkdir -p release
           cp bin/central-logs-linux-amd64 release/central-logs
@@ -97,11 +97,44 @@ jobs:
           cp README.md release/ 2>/dev/null || true
           tar -czvf central-logs-${{ steps.version.outputs.VERSION }}-linux-amd64.tar.gz -C release .
 
-      - name: Create GitHub Release
+      - name: Log in to Container Registry
+        if: steps.check.outputs.DO_RELEASE == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        if: steps.check.outputs.DO_RELEASE == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          build-args: |
+            VERSION=${{ steps.version.outputs.VERSION }}
+            BUILD_TIME=${{ steps.version.outputs.BUILD_TIME }}
+            GIT_COMMIT=${{ steps.version.outputs.GIT_COMMIT }}
+
+      - name: Semantic Release
+        if: steps.check.outputs.DO_RELEASE == 'true'
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release assets
+        if: steps.check.outputs.DO_RELEASE == 'true'
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
           files: central-logs-${{ steps.version.outputs.VERSION }}-linux-amd64.tar.gz
-          generate_release_notes: true
           body: |
             ## Docker Image
             ```bash

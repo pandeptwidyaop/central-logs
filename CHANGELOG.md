@@ -1,3 +1,16 @@
+# [1.1.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.0.0...v1.1.0) (2025-12-14)
+
+
+### Bug Fixes
+
+* **tests:** complete handler test schema updates ([9a46851](https://github.com/pandeptwidyaop/central-logs/commit/9a468514288303ace3300669feb8de519d880d8f))
+* **tests:** update all test schemas and fix test failures ([d71dd9d](https://github.com/pandeptwidyaop/central-logs/commit/d71dd9dafab420bb379cdff7586a2a22f83c734c))
+
+
+### Features
+
+* add Laravel-style migrations and comprehensive open source documentation ([46f285d](https://github.com/pandeptwidyaop/central-logs/commit/46f285d042c7c146149f2bbeae40471683612bfd))
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

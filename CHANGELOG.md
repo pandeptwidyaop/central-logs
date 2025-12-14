@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.1.0...v1.2.0) (2025-12-14)
+
+
+### Features
+
+* **ui:** add automatic update notification banner ([5e99d9e](https://github.com/pandeptwidyaop/central-logs/commit/5e99d9edad91e0ae0f86b246935d603286b8692e))
+
 # [1.1.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.0.0...v1.1.0) (2025-12-14)
 
 

@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/auth-context';
 import { Sidebar } from './sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { useRealtimeLogs } from '@/hooks/use-realtime-logs';
+import { useUpdateChecker } from '@/hooks/useUpdateChecker';
+import { UpdateBanner } from '@/components/update-banner';
 import { api, type Channel } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 
@@ -22,6 +24,7 @@ export function AppLayout() {
   const { user, loading } = useAuth();
   const [toastLevels, setToastLevels] = useState<string[]>(['ERROR', 'CRITICAL']);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { updateInfo, dismissUpdate } = useUpdateChecker();
 
   // Fetch push channel config from all projects
   useEffect(() => {
@@ -79,12 +82,18 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex h-screen">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="flex h-screen flex-col">
+      {/* Update notification banner */}
+      {updateInfo && (
+        <UpdateBanner updateInfo={updateInfo} onDismiss={dismissUpdate} />
+      )}
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Mobile header */}
-        <header className="flex h-14 items-center border-b bg-card px-4 lg:hidden">
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Mobile header */}
+          <header className="flex h-14 items-center border-b bg-card px-4 lg:hidden">
           <Button
             variant="ghost"
             size="icon"
@@ -103,11 +112,12 @@ export function AppLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto bg-background">
-          <div className="container mx-auto p-4 lg:p-6">
-            <Outlet />
-          </div>
-        </main>
+          <main className="flex-1 overflow-auto bg-background">
+            <div className="container mx-auto p-4 lg:p-6">
+              <Outlet />
+            </div>
+          </main>
+        </div>
       </div>
       <Toaster />
     </div>

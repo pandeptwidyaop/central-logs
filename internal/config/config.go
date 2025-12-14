@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -205,8 +204,8 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 
-	// Override with environment variables
-	cfg.loadFromEnv()
+	// Override with environment variables (supports both SERVER_PORT and CL_SERVER_PORT formats)
+	cfg.loadFromEnvNew()
 
 	return cfg, nil
 }
@@ -225,38 +224,8 @@ func Save(path string, cfg *Config) error {
 	return os.WriteFile(path, data, 0644)
 }
 
+// loadFromEnv is deprecated, use loadFromEnvNew instead
+// Kept for backward compatibility
 func (c *Config) loadFromEnv() {
-	if v := os.Getenv("CL_SERVER_PORT"); v != "" {
-		var port int
-		if _, err := fmt.Sscanf(v, "%d", &port); err == nil {
-			c.Server.Port = port
-		}
-	}
-	if v := os.Getenv("CL_SERVER_ENV"); v != "" {
-		c.Server.Env = v
-	}
-	if v := os.Getenv("CL_DATABASE_PATH"); v != "" {
-		c.Database.Path = v
-	}
-	if v := os.Getenv("CL_REDIS_URL"); v != "" {
-		c.Redis.URL = v
-	}
-	if v := os.Getenv("CL_JWT_SECRET"); v != "" {
-		c.JWT.Secret = v
-	}
-	if v := os.Getenv("CL_JWT_EXPIRY"); v != "" {
-		c.JWT.Expiry = v
-	}
-	if v := os.Getenv("CL_VAPID_PUBLIC_KEY"); v != "" {
-		c.VAPID.PublicKey = v
-	}
-	if v := os.Getenv("CL_VAPID_PRIVATE_KEY"); v != "" {
-		c.VAPID.PrivateKey = v
-	}
-	if v := os.Getenv("CL_ADMIN_USERNAME"); v != "" {
-		c.Admin.Username = v
-	}
-	if v := os.Getenv("CL_ADMIN_PASSWORD"); v != "" {
-		c.Admin.Password = v
-	}
+	c.loadFromEnvNew()
 }

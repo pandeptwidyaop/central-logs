@@ -26,6 +26,13 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
+// Build-time variables (injected via ldflags)
+var (
+	Version   = "dev"
+	BuildTime = "unknown"
+	GitCommit = "unknown"
+)
+
 func main() {
 	// Load config
 	cfg, err := config.Load("config.yaml")
@@ -130,6 +137,15 @@ func main() {
 
 	// API routes
 	api := app.Group("/api")
+
+	// Version endpoint (public)
+	api.Get("/version", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"version":    Version,
+			"build_time": BuildTime,
+			"git_commit": GitCommit,
+		})
+	})
 
 	// Auth routes (public)
 	auth := api.Group("/auth")

@@ -1,5 +1,13 @@
 .PHONY: dev dev-backend dev-frontend build clean frontend backend install run test
 
+# Version info (can be overridden)
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+BUILD_TIME ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+# Build flags
+LDFLAGS := -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)
+
 # Install dependencies
 install:
 	@echo "Installing Go dependencies..."
@@ -39,13 +47,15 @@ frontend:
 
 backend:
 	@echo "Building backend..."
-	@CGO_ENABLED=1 go build -o bin/central-logs ./cmd/server
+	@echo "Version: $(VERSION) | Commit: $(GIT_COMMIT) | Build: $(BUILD_TIME)"
+	@CGO_ENABLED=1 go build -ldflags "$(LDFLAGS)" -o bin/central-logs ./cmd/server
 	@echo "Backend built: bin/central-logs"
 
 # Cross compile for Linux (AMD64)
 build-linux: frontend
 	@echo "Building for Linux (amd64)..."
-	@CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC=x86_64-linux-gnu-gcc go build -o bin/central-logs-linux-amd64 ./cmd/server
+	@echo "Version: $(VERSION) | Commit: $(GIT_COMMIT) | Build: $(BUILD_TIME)"
+	@CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC=x86_64-linux-gnu-gcc go build -ldflags "$(LDFLAGS)" -o bin/central-logs-linux-amd64 ./cmd/server
 	@echo "Built: bin/central-logs-linux-amd64"
 
 # Run production binary

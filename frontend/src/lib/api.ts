@@ -302,6 +302,11 @@ class ApiClient {
   async getProjectStats(projectId: string): Promise<ProjectStats> {
     return this.request<ProjectStats>(`/admin/stats/projects/${projectId}`);
   }
+
+  // Version (public)
+  async getVersion(): Promise<VersionInfo> {
+    return this.request<VersionInfo>('/version', {}, true);
+  }
 }
 
 // Types
@@ -475,6 +480,12 @@ export interface PushSubscriptionRequest {
     p256dh: string;
     auth: string;
   };
+}
+
+export interface VersionInfo {
+  version: string;
+  build_time: string;
+  git_commit: string;
 }
 
 export const api = new ApiClient();

@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+bin/
+tmp/
+build-errors.log
+
+# Development files
+.air.toml
+.claude/
+*.md
+!README.md
+
+# Frontend build artifacts (we rebuild in Docker)
+frontend/node_modules/
+frontend/dist/
+web/dist/
+
+# Data
+data/
+*.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+*_test.go
+tests/
+frontend/e2e/
+frontend/playwright-report/
+frontend/test-results/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore

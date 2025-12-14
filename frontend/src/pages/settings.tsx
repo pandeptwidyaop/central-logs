@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api, type TwoFactorSetupResponse, type TwoFactorStatusResponse } from '@/lib/api';
+import { api, type TwoFactorSetupResponse, type TwoFactorStatusResponse, type VersionInfo } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,13 +14,16 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, ShieldCheck, ShieldOff, Copy, Key, RefreshCw } from 'lucide-react';
+import { Shield, ShieldCheck, ShieldOff, Copy, Key, RefreshCw, Info } from 'lucide-react';
 import QRCode from 'qrcode';
 
 export function SettingsPage() {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Version state
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
 
   // 2FA state
   const [twoFAStatus, setTwoFAStatus] = useState<TwoFactorStatusResponse | null>(null);
@@ -35,10 +38,20 @@ export function SettingsPage() {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [regenerateCode, setRegenerateCode] = useState('');
 
-  // Fetch 2FA status on mount
+  // Fetch version and 2FA status on mount
   useEffect(() => {
     fetchTwoFAStatus();
+    fetchVersionInfo();
   }, []);
+
+  const fetchVersionInfo = async () => {
+    try {
+      const info = await api.getVersion();
+      setVersionInfo(info);
+    } catch {
+      // Failed to fetch version info
+    }
+  };
 
   const fetchTwoFAStatus = async () => {
     try {
@@ -358,6 +371,37 @@ export function SettingsPage() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Version Info Card */}
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              About
+            </CardTitle>
+            <CardDescription>Application version information</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <Label className="text-muted-foreground">Version</Label>
+                <p className="font-mono font-medium">{versionInfo?.version || '-'}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Build Time</Label>
+                <p className="font-mono text-sm">
+                  {versionInfo?.build_time
+                    ? new Date(versionInfo.build_time).toLocaleString()
+                    : '-'}
+                </p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Git Commit</Label>
+                <p className="font-mono text-sm">{versionInfo?.git_commit || '-'}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

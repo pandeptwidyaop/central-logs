@@ -1,3 +1,16 @@
+# [1.3.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.2.0...v1.3.0) (2025-12-14)
+
+
+### Bug Fixes
+
+* **docker:** add env_file config to load environment variables ([bb00b8b](https://github.com/pandeptwidyaop/central-logs/commit/bb00b8bf1610b41bd0dc0e74366bd7a347f8dba3))
+
+
+### Features
+
+* **config:** add dual-format environment variable support ([144bde7](https://github.com/pandeptwidyaop/central-logs/commit/144bde73ba0d59dc385afe71856866619d702be4))
+* **server:** explicitly bind to 0.0.0.0 for Docker compatibility ([809bfd0](https://github.com/pandeptwidyaop/central-logs/commit/809bfd0772af1b4c6d4bd0caf923490150909f62))
+
 # [1.2.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.1.0...v1.2.0) (2025-12-14)
 
 

@@ -1,3 +1,11 @@
+## [1.3.1](https://github.com/pandeptwidyaop/central-logs/compare/v1.3.0...v1.3.1) (2025-12-15)
+
+
+### Bug Fixes
+
+* **docker-compose:** use IPv4 for healthcheck ([fe6ccc8](https://github.com/pandeptwidyaop/central-logs/commit/fe6ccc8cf973ad7f34aa89a0216f47b6440ab317))
+* **docker:** use IPv4 for healthcheck instead of localhost ([afe6ad6](https://github.com/pandeptwidyaop/central-logs/commit/afe6ad63b18cbbd9d58538cad5fbd3e83782c6cb))
+
 # [1.3.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.2.0...v1.3.0) (2025-12-14)
 
 

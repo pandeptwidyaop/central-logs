@@ -258,7 +258,7 @@ export function LoginPage() {
 
           <div className="text-center text-sm text-muted-foreground space-y-1">
             <p>Secure log management for your applications</p>
-            {version && <p className="text-xs">v{version}</p>}
+            {version && <p className="text-xs">{version.startsWith('v') ? version : `v${version}`}</p>}
           </div>
         </div>
       </div>

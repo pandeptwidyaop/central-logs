@@ -170,7 +170,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </div>
           {version && (
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              v{version}
+              {version.startsWith('v') ? version : `v${version}`}
             </p>
           )}
         </div>

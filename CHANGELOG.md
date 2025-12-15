@@ -1,3 +1,11 @@
+## [1.3.2](https://github.com/pandeptwidyaop/central-logs/compare/v1.3.1...v1.3.2) (2025-12-15)
+
+
+### Bug Fixes
+
+* **ui:** prevent double 'v' in sidebar version display ([09745c0](https://github.com/pandeptwidyaop/central-logs/commit/09745c0d77df20d4e3b79e424c32c2e5548084dd))
+* **ui:** prevent double 'v' prefix in version display ([ce44a5b](https://github.com/pandeptwidyaop/central-logs/commit/ce44a5b64a34816e3d360a3d40b04d07f820ea0f))
+
 ## [1.3.1](https://github.com/pandeptwidyaop/central-logs/compare/v1.3.0...v1.3.1) (2025-12-15)
 
 

@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.3.2...v1.4.0) (2025-12-16)
+
+
+### Features
+
+* add Telegram notification integration ([6efe010](https://github.com/pandeptwidyaop/central-logs/commit/6efe010fe07cbb870a9e6955a221530850bbd466))
+
 ## [1.3.2](https://github.com/pandeptwidyaop/central-logs/compare/v1.3.1...v1.3.2) (2025-12-15)
 
 

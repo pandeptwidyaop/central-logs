@@ -13,6 +13,7 @@ type Config struct {
 	Redis     RedisConfig     `yaml:"redis"`
 	JWT       JWTConfig       `yaml:"jwt"`
 	VAPID     VAPIDConfig     `yaml:"vapid"`
+	Telegram  TelegramConfig  `yaml:"telegram"`
 	Admin     AdminConfig     `yaml:"admin"`
 	Retention RetentionConfig `yaml:"retention"`
 	RateLimit RateLimitConfig `yaml:"rate_limit"`
@@ -41,6 +42,11 @@ type VAPIDConfig struct {
 	PublicKey  string `yaml:"public_key"`
 	PrivateKey string `yaml:"private_key"`
 	Subject    string `yaml:"subject"`
+}
+
+type TelegramConfig struct {
+	BotToken string `yaml:"bot_token"`
+	Enabled  bool   `yaml:"enabled"`
 }
 
 type AdminConfig struct {
@@ -137,6 +143,9 @@ func DefaultConfig() *Config {
 		},
 		VAPID: VAPIDConfig{
 			Subject: "mailto:admin@example.com",
+		},
+		Telegram: TelegramConfig{
+			Enabled: false,
 		},
 		Admin: AdminConfig{
 			Username: "admin",

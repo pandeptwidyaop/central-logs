@@ -64,9 +64,10 @@ func (h *ChannelHandler) CreateChannel(c *fiber.Ctx) error {
 
 	// Validate config based on type
 	if req.Type == models.ChannelTypeTelegram {
-		if req.Config["bot_token"] == nil || req.Config["chat_id"] == nil {
+		// Only chat_id is required - bot_token is optional (uses global config if empty)
+		if req.Config["chat_id"] == nil || req.Config["chat_id"] == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Telegram requires bot_token and chat_id",
+				"error": "Telegram requires chat_id",
 			})
 		}
 	}

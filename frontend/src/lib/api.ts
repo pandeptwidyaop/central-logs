@@ -311,6 +311,22 @@ class ApiClient {
   async checkForUpdates(): Promise<UpdateCheckInfo> {
     return this.request<UpdateCheckInfo>('/version/check', {}, true);
   }
+
+  // Telegram helper
+  async getTelegramChats(botToken: string): Promise<TelegramChatInfo[]> {
+    const response = await this.request<{ chats: TelegramChatInfo[] }>('/admin/telegram/chats', {
+      method: 'POST',
+      body: JSON.stringify({ bot_token: botToken }),
+    });
+    return response.chats;
+  }
+
+  async testTelegramBot(botToken: string): Promise<TelegramTestResponse> {
+    return this.request<TelegramTestResponse>('/admin/telegram/test', {
+      method: 'POST',
+      body: JSON.stringify({ bot_token: botToken }),
+    });
+  }
 }
 
 // Types
@@ -499,6 +515,21 @@ export interface UpdateCheckInfo {
   release_url?: string;
   release_notes?: string;
   published_at?: string;
+}
+
+export interface TelegramChatInfo {
+  chat_id: string;
+  type: string;
+  name: string;
+  username?: string;
+  last_message: string;
+  last_date: string;
+}
+
+export interface TelegramTestResponse {
+  valid: boolean;
+  bot_name?: string;
+  error?: string;
 }
 
 export const api = new ApiClient();

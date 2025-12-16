@@ -24,6 +24,11 @@ vapid:
   private_key: "4dERHXcVs9WYkT8PtwFMid7mpMf_z1ejBQbnSAwfpdw"
   subject: mailto:admin@example.com
 
+# Telegram Bot (Global Default)
+telegram:
+  bot_token: ""  # Add your bot token here (optional - channels can override)
+  enabled: false
+
 # Initial Admin User (created on first run)
 admin:
   username: admin

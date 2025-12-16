@@ -18,6 +18,7 @@ import (
 	"central-logs/internal/services/notification"
 	"central-logs/internal/utils"
 	"central-logs/internal/websocket"
+	"central-logs/internal/worker"
 	"central-logs/web"
 
 	"github.com/gofiber/fiber/v2"
@@ -111,6 +112,18 @@ func main() {
 	statsHandler := handlers.NewStatsHandler(logRepo, projectRepo, userProjectRepo, userRepo)
 	pushHandler := handlers.NewPushHandler(subscriptionRepo, cfg)
 	versionHandler := handlers.NewVersionHandler(Version)
+	telegramHandler := handlers.NewTelegramHandler(cfg)
+
+	// Initialize notification workers (if Redis is available)
+	var notificationConsumer *worker.NotificationConsumer
+	if redisClient != nil {
+		notifier := worker.NewNotifier(channelRepo, cfg)
+		notificationConsumer = worker.NewNotificationConsumer(redisClient, notifier, channelRepo, logRepo)
+		notificationConsumer.Start(3) // Start 3 worker goroutines
+		log.Println("Notification workers started")
+	} else {
+		log.Println("Redis not available - notification workers disabled")
+	}
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
@@ -228,6 +241,11 @@ func main() {
 	stats.Get("/overview", statsHandler.GetOverview)
 	stats.Get("/projects/:id", statsHandler.GetProjectStats)
 
+	// Telegram helper routes (authenticated)
+	telegram := admin.Group("/telegram")
+	telegram.Post("/chats", telegramHandler.GetRecentChats)
+	telegram.Post("/test", telegramHandler.TestBotToken)
+
 	// Push notification routes
 	push := api.Group("/push")
 	push.Get("/vapid-key", pushHandler.GetVAPIDPublicKey) // Public - get VAPID key
@@ -267,6 +285,12 @@ func main() {
 	go func() {
 		<-quit
 		log.Println("Shutting down server...")
+
+		// Stop notification workers
+		if notificationConsumer != nil {
+			notificationConsumer.Stop()
+		}
+
 		app.Shutdown()
 	}()
 

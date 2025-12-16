@@ -23,6 +23,7 @@ import {
 import { api, type Project, type LogEntry, type Channel, type ProjectMember, type User, type ProjectIconType } from '@/lib/api';
 import { ProjectIcon } from '@/components/project-icon';
 import { ProjectIconPicker } from '@/components/project-icon-picker';
+import { ChannelManager } from '@/components/channel-manager';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -491,6 +492,7 @@ export function ProjectDetailPage() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="logs">Recent Logs</TabsTrigger>
+          <TabsTrigger value="channels">Channels</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -607,6 +609,10 @@ export function ProjectDetailPage() {
               <Link to={`/logs?project_id=${project.id}`}>View All Logs</Link>
             </Button>
           </div>
+        </TabsContent>
+
+        <TabsContent value="channels" className="space-y-4">
+          {project && <ChannelManager projectId={project.id} />}
         </TabsContent>
 
         <TabsContent value="members" className="space-y-4">

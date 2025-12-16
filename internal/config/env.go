@@ -36,6 +36,10 @@ var envMappings = []EnvMapping{
 	{"VAPID_PRIVATE_KEY", "vapid.private_key", "string"},
 	{"VAPID_SUBJECT", "vapid.subject", "string"},
 
+	// Telegram Config
+	{"TELEGRAM_BOT_TOKEN", "telegram.bot_token", "string"},
+	{"TELEGRAM_ENABLED", "telegram.enabled", "bool"},
+
 	// Admin Config
 	{"ADMIN_USERNAME", "admin.username", "string"},
 	{"ADMIN_PASSWORD", "admin.password", "string"},
@@ -111,6 +115,8 @@ func (c *Config) setConfigValue(path, value, valueType string) error {
 		return c.setJWTValue(parts[1:], value, valueType)
 	case "vapid":
 		return c.setVAPIDValue(parts[1:], value, valueType)
+	case "telegram":
+		return c.setTelegramValue(parts[1:], value, valueType)
 	case "admin":
 		return c.setAdminValue(parts[1:], value, valueType)
 	case "rate_limit":
@@ -182,6 +188,22 @@ func (c *Config) setVAPIDValue(path []string, value, valueType string) error {
 		c.VAPID.Subject = value
 	default:
 		return fmt.Errorf("unknown vapid field: %s", path[0])
+	}
+	return nil
+}
+
+func (c *Config) setTelegramValue(path []string, value, valueType string) error {
+	switch path[0] {
+	case "bot_token":
+		c.Telegram.BotToken = value
+	case "enabled":
+		enabled, err := strconv.ParseBool(value)
+		if err != nil {
+			return err
+		}
+		c.Telegram.Enabled = enabled
+	default:
+		return fmt.Errorf("unknown telegram field: %s", path[0])
 	}
 	return nil
 }

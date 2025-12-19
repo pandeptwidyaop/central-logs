@@ -359,7 +359,7 @@ export function LogsPage() {
 
       {/* Log Detail Dialog */}
       <Dialog open={!!selectedLog} onOpenChange={handleCloseDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Badge variant={selectedLog ? levelColors[selectedLog.level] : 'default'}>
@@ -372,32 +372,32 @@ export function LogsPage() {
             </DialogDescription>
           </DialogHeader>
           {selectedLog && (
-            <div className="space-y-4">
-              <div>
-                <h4 className="mb-1 text-sm font-medium text-muted-foreground">Project</h4>
-                <p>{selectedLog.project_name}</p>
-              </div>
-              <div>
-                <h4 className="mb-1 text-sm font-medium text-muted-foreground">Message</h4>
-                <p className="whitespace-pre-wrap">{selectedLog.message}</p>
-              </div>
-              {selectedLog.source && (
+            <ScrollArea className="flex-1 pr-4">
+              <div className="space-y-4">
                 <div>
-                  <h4 className="mb-1 text-sm font-medium text-muted-foreground">Source</h4>
-                  <p>{selectedLog.source}</p>
+                  <h4 className="mb-1 text-sm font-medium text-muted-foreground">Project</h4>
+                  <p>{selectedLog.project_name}</p>
                 </div>
-              )}
-              {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
                 <div>
-                  <h4 className="mb-1 text-sm font-medium text-muted-foreground">Metadata</h4>
-                  <ScrollArea className="h-48">
-                    <pre className="rounded bg-muted p-3 text-sm">
+                  <h4 className="mb-1 text-sm font-medium text-muted-foreground">Message</h4>
+                  <p className="whitespace-pre-wrap break-words">{selectedLog.message}</p>
+                </div>
+                {selectedLog.source && (
+                  <div>
+                    <h4 className="mb-1 text-sm font-medium text-muted-foreground">Source</h4>
+                    <p className="break-all font-mono text-sm">{selectedLog.source}</p>
+                  </div>
+                )}
+                {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
+                  <div>
+                    <h4 className="mb-1 text-sm font-medium text-muted-foreground">Metadata</h4>
+                    <pre className="rounded bg-muted p-3 text-sm whitespace-pre-wrap break-words overflow-x-auto">
                       {JSON.stringify(selectedLog.metadata, null, 2)}
                     </pre>
-                  </ScrollArea>
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           )}
         </DialogContent>
       </Dialog>

@@ -38,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table,
   TableBody,
@@ -115,6 +116,7 @@ export function ProjectDetailPage() {
   const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<{ userId: string; username: string } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   const {
@@ -606,7 +608,11 @@ export function ProjectDetailPage() {
                   </TableHeader>
                   <TableBody>
                     {logs.map((log) => (
-                      <TableRow key={log.id}>
+                      <TableRow
+                        key={log.id}
+                        className="cursor-pointer"
+                        onClick={() => setSelectedLog(log)}
+                      >
                         <TableCell>
                           <Badge variant={levelColors[log.level]}>{log.level}</Badge>
                         </TableCell>
@@ -1185,6 +1191,51 @@ export function ProjectDetailPage() {
         loading={confirmLoading}
         onConfirm={handleRemoveMember}
       />
+
+      {/* Log Detail Dialog */}
+      <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Badge variant={selectedLog ? levelColors[selectedLog.level] : 'default'}>
+                {selectedLog?.level}
+              </Badge>
+              Log Details
+            </DialogTitle>
+            <DialogDescription>
+              {selectedLog && new Date(selectedLog.created_at).toLocaleString()}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedLog && (
+            <ScrollArea className="flex-1 pr-4">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="mb-1 text-sm font-medium text-muted-foreground">Project</h4>
+                  <p>{selectedLog.project_name}</p>
+                </div>
+                <div>
+                  <h4 className="mb-1 text-sm font-medium text-muted-foreground">Message</h4>
+                  <p className="whitespace-pre-wrap break-words">{selectedLog.message}</p>
+                </div>
+                {selectedLog.source && (
+                  <div>
+                    <h4 className="mb-1 text-sm font-medium text-muted-foreground">Source</h4>
+                    <p className="break-all font-mono text-sm">{selectedLog.source}</p>
+                  </div>
+                )}
+                {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
+                  <div>
+                    <h4 className="mb-1 text-sm font-medium text-muted-foreground">Metadata</h4>
+                    <pre className="rounded bg-muted p-3 text-sm whitespace-pre-wrap break-words overflow-x-auto">
+                      {JSON.stringify(selectedLog.metadata, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,3 +1,16 @@
+# [1.5.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.4.0...v1.5.0) (2025-12-19)
+
+
+### Bug Fixes
+
+* handle undefined api_key_prefix in clipboard copy ([9216abc](https://github.com/pandeptwidyaop/central-logs/commit/9216abce440a3d986afad6ec4d912e94fedcfe88))
+
+
+### Features
+
+* improve API key copy and management UX ([f84bd9b](https://github.com/pandeptwidyaop/central-logs/commit/f84bd9b06aea6eae876c991abc000273812215fe))
+* improve log detail dialog UX and fix text overflow ([556d5c4](https://github.com/pandeptwidyaop/central-logs/commit/556d5c4807bfc92559706689e6bde03dc1c11543))
+
 # [1.4.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.3.2...v1.4.0) (2025-12-16)
 
 

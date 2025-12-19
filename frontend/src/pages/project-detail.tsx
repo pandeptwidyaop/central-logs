@@ -1228,18 +1228,29 @@ export function ProjectDetailPage() {
                 {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
                   <div>
                     <h4 className="mb-1 text-sm font-medium text-muted-foreground">Metadata</h4>
-                    <div className="rounded overflow-hidden">
+                    <div className="rounded overflow-auto max-h-[400px] border border-border bg-[#282c34]">
                       <SyntaxHighlighter
                         language="json"
                         style={oneDark}
                         customStyle={{
                           margin: 0,
+                          padding: '1rem',
                           fontSize: '0.875rem',
-                          maxHeight: '400px',
-                          overflow: 'auto'
+                          background: '#282c34',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word'
+                        }}
+                        codeTagProps={{
+                          style: {
+                            background: 'transparent',
+                            padding: 0,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word'
+                          }
                         }}
                         wrapLines={true}
                         wrapLongLines={true}
+                        showLineNumbers={false}
                       >
                         {JSON.stringify(selectedLog.metadata, null, 2)}
                       </SyntaxHighlighter>

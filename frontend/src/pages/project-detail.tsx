@@ -19,6 +19,7 @@ import {
   Skull,
   Users,
   UserPlus,
+  Download,
 } from 'lucide-react';
 import { api, type Project, type LogEntry, type Channel, type ProjectMember, type User, type ProjectIconType } from '@/lib/api';
 import { ProjectIcon } from '@/components/project-icon';
@@ -512,14 +513,30 @@ export function ProjectDetailPage() {
             <CardContent className="space-y-4">
               {project.api_key_prefix ? (
                 <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Current API Key (Masked)</Label>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-lg bg-muted px-4 py-3 font-mono text-sm">
+                    <code className="flex-1 rounded-lg bg-muted px-4 py-3 font-mono text-sm select-all">
                       {project.api_key_prefix}
                     </code>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        navigator.clipboard.writeText(project.api_key_prefix);
+                        toast({
+                          title: 'Copied!',
+                          description: 'API key prefix copied to clipboard (Note: This is just the prefix)',
+                        });
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    For security reasons, only the key prefix is shown. Click "Rotate API Key" to generate a new key and view it once.
-                  </p>
+                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      <strong>Security Notice:</strong> For security, only the key prefix is shown. The full key is only visible once when created/rotated. Click "Rotate API Key" below to generate a new key and view the full value.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <p className="text-muted-foreground">No API key available</p>
@@ -1070,27 +1087,64 @@ export function ProjectDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="flex items-center gap-2">
-              <code className="flex-1 rounded-lg bg-muted px-4 py-3 font-mono text-sm break-all">
-                {newApiKey}
-              </code>
-              <Button variant="outline" size="icon" onClick={copyNewApiKey}>
-                {copiedApiKey ? (
-                  <Check className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Your New API Key</Label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-lg bg-muted px-4 py-3 font-mono text-sm break-all select-all">
+                  {newApiKey}
+                </code>
+                <Button variant="outline" size="icon" onClick={copyNewApiKey} title="Copy to clipboard">
+                  {copiedApiKey ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={copyNewApiKey}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                {copiedApiKey ? 'Copied!' : 'Copy to Clipboard'}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  const blob = new Blob([newApiKey], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${project?.name.replace(/\s+/g, '-').toLowerCase()}-api-key.txt`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  toast({
+                    title: 'Downloaded!',
+                    description: 'API key saved to file',
+                  });
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download as File
               </Button>
             </div>
+
             <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
-              <p className="text-sm text-amber-600 dark:text-amber-400">
-                Make sure to copy your API key now. You won't be able to see it again!
+              <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                ⚠️ Important: Make sure to copy or download your API key now. You won't be able to see it again!
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => setApiKeyDialogOpen(false)}>
-              {copiedApiKey ? 'Done' : 'Close'}
+            <Button onClick={() => setApiKeyDialogOpen(false)} disabled={!copiedApiKey}>
+              {copiedApiKey ? 'Done - I have saved the key' : 'Please copy the key first'}
             </Button>
           </DialogFooter>
         </DialogContent>

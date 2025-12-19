@@ -524,7 +524,7 @@ export function ProjectDetailPage() {
                       variant="outline"
                       size="icon"
                       onClick={() => {
-                        navigator.clipboard.writeText(project.api_key_prefix);
+                        navigator.clipboard.writeText(project.api_key_prefix || '');
                         toast({
                           title: 'Copied!',
                           description: 'API key prefix copied to clipboard (Note: This is just the prefix)',

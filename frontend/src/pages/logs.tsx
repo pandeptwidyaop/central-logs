@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
   Select,
   SelectContent,
@@ -391,9 +393,22 @@ export function LogsPage() {
                 {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
                   <div>
                     <h4 className="mb-1 text-sm font-medium text-muted-foreground">Metadata</h4>
-                    <pre className="rounded bg-muted p-3 text-sm whitespace-pre-wrap break-words overflow-x-auto">
-                      {JSON.stringify(selectedLog.metadata, null, 2)}
-                    </pre>
+                    <div className="rounded overflow-hidden">
+                      <SyntaxHighlighter
+                        language="json"
+                        style={oneDark}
+                        customStyle={{
+                          margin: 0,
+                          fontSize: '0.875rem',
+                          maxHeight: '400px',
+                          overflow: 'auto'
+                        }}
+                        wrapLines={true}
+                        wrapLongLines={true}
+                      >
+                        {JSON.stringify(selectedLog.metadata, null, 2)}
+                      </SyntaxHighlighter>
+                    </div>
                   </div>
                 )}
               </div>

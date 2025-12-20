@@ -1,3 +1,15 @@
+# [1.6.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.5.0...v1.6.0) (2025-12-19)
+
+
+### Bug Fixes
+
+* improve JSON metadata viewer with syntax highlighting and text wrapping ([a34aea8](https://github.com/pandeptwidyaop/central-logs/commit/a34aea8d3df3be478b957d8ccd3c79f9b83c79e6)), closes [#282c34](https://github.com/pandeptwidyaop/central-logs/issues/282c34)
+
+
+### Features
+
+* add JSON syntax highlighting to log metadata viewer ([1778656](https://github.com/pandeptwidyaop/central-logs/commit/1778656a9bd015832e0347f757ede991790c51b4))
+
 # [1.5.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.4.0...v1.5.0) (2025-12-19)
 
 

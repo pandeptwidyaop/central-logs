@@ -1,6 +1,7 @@
 package models
 
 import (
+	"central-logs/internal/utils"
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
@@ -175,6 +176,11 @@ func (r *ProjectRepository) GetByAPIKey(apiKey string) (*Project, error) {
 		if err := json.Unmarshal([]byte(retentionJSON.String), &project.RetentionConfig); err != nil {
 			return nil, err
 		}
+	}
+
+	// Additional constant-time verification to prevent timing attacks
+	if !utils.SecureCompareHash(project.APIKey, hashedKey) {
+		return nil, nil // Hash mismatch
 	}
 
 	return project, nil

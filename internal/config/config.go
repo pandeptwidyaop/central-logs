@@ -21,8 +21,9 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port int    `yaml:"port"`
-	Env  string `yaml:"env"`
+	Port         int    `yaml:"port"`
+	Env          string `yaml:"env"`
+	AllowOrigins string `yaml:"allow_origins"` // Comma-separated CORS origins
 }
 
 type DatabaseConfig struct {
@@ -128,8 +129,9 @@ func (c *Config) GetWebSocketPongTimeout() time.Duration {
 func DefaultConfig() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port: 3000,
-			Env:  "development",
+			Port:         3000,
+			Env:          "development",
+			AllowOrigins: "*", // Allow all origins in dev, override for production
 		},
 		Database: DatabaseConfig{
 			Path: "./data/central-logs.db",

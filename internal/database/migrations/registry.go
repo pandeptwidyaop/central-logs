@@ -13,5 +13,7 @@ func GetAll() []database.Migration {
 		&CreatePushSubscriptionsTable{},
 		&CreateNotificationHistoryTable{},
 		&CreateIndexes{},
+		&CreateMCPTokensTable{},
+		&CreateMCPActivityLogsTable{},
 	}
 }

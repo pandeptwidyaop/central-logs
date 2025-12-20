@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Central Logs](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Central Logs](https://img.shields.io/badge/version-1.5.0-blue.svg)
 ![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -26,6 +26,7 @@ Central Logs is a self-hosted log aggregation platform that helps you collect, m
 - 🚀 **Blazing Fast** - Built with Go and SQLite for maximum performance
 - 🎨 **Beautiful UI** - Modern React interface with real-time updates
 - 🔐 **Secure** - JWT authentication with RBAC (Role-Based Access Control)
+- 🤖 **AI-Ready** - Built-in MCP server for AI agent integration (Claude Desktop compatible)
 - 📱 **Push Notifications** - Web Push API support for critical alerts
 - 🔔 **Multi-Channel Alerts** - Telegram, Discord, and Webhook integrations
 - 🎯 **Smart Filtering** - Advanced log filtering and search capabilities
@@ -51,6 +52,17 @@ Central Logs is a self-hosted log aggregation platform that helps you collect, m
 - **Generic Webhooks** - Custom webhook endpoints for any service
 - **Web Push Notifications** - Browser push notifications (VAPID)
 - **Configurable Thresholds** - Set minimum log levels per channel
+
+### MCP Server (AI Integration)
+
+- **Model Context Protocol** - Built-in MCP server for AI agent integration
+- **7 Query Tools** - query_logs, get_log, list_projects, get_project, get_stats, search_logs, get_recent_logs
+- **Token Management** - Secure token-based authentication with activity tracking
+- **Project-Based Access** - Fine-grained permissions per token
+- **Claude Desktop Ready** - Works seamlessly with Claude Desktop and other MCP clients
+- **Activity Monitoring** - Track all AI agent interactions and API usage
+
+See [MCP Documentation](docs/mcp.md) for detailed setup and usage instructions.
 
 ### User Management
 
@@ -479,6 +491,19 @@ Two authentication methods are supported:
 #### Statistics
 - `GET /api/admin/stats/overview` - System overview stats
 
+#### MCP Server (AI Integration)
+- `POST /api/mcp/message` - MCP protocol endpoint
+- `GET /api/admin/mcp/status` - Get MCP server status
+- `POST /api/admin/mcp/toggle` - Enable/disable MCP server
+- `GET /api/admin/mcp/tokens` - List MCP tokens
+- `POST /api/admin/mcp/tokens` - Create MCP token
+- `GET /api/admin/mcp/tokens/:id` - Get token details
+- `PUT /api/admin/mcp/tokens/:id` - Update token
+- `DELETE /api/admin/mcp/tokens/:id` - Delete token
+- `GET /api/admin/mcp/tokens/:id/activity` - Get token activity logs
+
+See [MCP Documentation](docs/mcp.md) for detailed API specifications and tool descriptions.
+
 #### WebSocket
 - `GET /ws` - WebSocket connection for real-time logs
 
@@ -582,6 +607,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🗺️ Roadmap
 
+- [x] **MCP Server Integration** - AI agent integration via Model Context Protocol ✅
 - [ ] Elasticsearch integration
 - [ ] Log parsing and structured logging
 - [ ] Custom dashboards

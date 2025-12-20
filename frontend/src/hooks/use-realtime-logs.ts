@@ -30,7 +30,7 @@ export function useRealtimeLogs(options: UseRealtimeLogsOptions = {}) {
     toastLevels = ['ERROR', 'CRITICAL'],
   } = options;
 
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,25 +80,30 @@ export function useRealtimeLogs(options: UseRealtimeLogsOptions = {}) {
 
   // Connect/disconnect based on enabled state
   useEffect(() => {
-    if (!enabled || !user) return;
+    if (!enabled || !user || !token) return;
 
     // Build WebSocket URL
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    let wsUrl = `${protocol}//${host}/ws/logs?user_id=${user.id}`;
+    let wsUrl = `${protocol}//${host}/ws/logs`;
+
+    // Add project filter as query param (optional)
     if (projectId) {
-      wsUrl += `&project_id=${projectId}`;
+      wsUrl += `?project_id=${projectId}`;
     }
 
     // In development, use the backend port
     if (import.meta.env.DEV) {
-      wsUrl = `ws://localhost:3000/ws/logs?user_id=${user.id}`;
+      wsUrl = `ws://localhost:3000/ws/logs`;
       if (projectId) {
-        wsUrl += `&project_id=${projectId}`;
+        wsUrl += `?project_id=${projectId}`;
       }
     }
 
-    const ws = new WebSocket(wsUrl);
+    // Use Sec-WebSocket-Protocol to pass the JWT token
+    // This is a workaround since WebSocket API doesn't support custom headers
+    // Format: "token, <jwt-token-value>"
+    const ws = new WebSocket(wsUrl, ['token', token]);
 
     ws.onopen = () => {
       setIsConnected(true);
@@ -180,8 +185,8 @@ export function useRealtimeLogs(options: UseRealtimeLogsOptions = {}) {
       ws.close(1000, 'Component unmounted');
       wsRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- audioRef is stable, user?.id is sufficient (avoid reconnect on user object changes)
-  }, [enabled, user?.id, projectId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- audioRef is stable, user?.id and token are sufficient
+  }, [enabled, user?.id, token, projectId]);
 
   // Disconnect function for manual control
   const disconnect = useCallback(() => {

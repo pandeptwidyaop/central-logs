@@ -131,6 +131,8 @@ export function LogsPage() {
       });
       setLogs(result.logs ?? []);
       setTotal(result.total ?? 0);
+      // Also refresh projects list to catch newly created projects
+      api.getProjects().then(setProjects);
     } finally {
       setLoading(false);
     }

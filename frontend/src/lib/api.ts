@@ -327,6 +327,55 @@ class ApiClient {
       body: JSON.stringify({ bot_token: botToken }),
     });
   }
+
+  // MCP Methods
+  async getMCPStatus(): Promise<MCPStatusResponse> {
+    return this.request<MCPStatusResponse>('/admin/mcp/status');
+  }
+
+  async toggleMCP(enabled: boolean): Promise<MCPStatusResponse> {
+    return this.request<MCPStatusResponse>('/admin/mcp/toggle', {
+      method: 'POST',
+      body: JSON.stringify({ enabled }),
+    });
+  }
+
+  async getMCPTokens(): Promise<MCPToken[]> {
+    const response = await this.request<{ tokens: MCPToken[] | null }>('/admin/mcp/tokens');
+    return response.tokens || [];
+  }
+
+  async getMCPToken(id: string): Promise<MCPToken> {
+    const response = await this.request<{ token: MCPToken }>(`/admin/mcp/tokens/${id}`);
+    return response.token;
+  }
+
+  async createMCPToken(data: CreateMCPTokenRequest): Promise<CreateMCPTokenResponse> {
+    return this.request<CreateMCPTokenResponse>('/admin/mcp/tokens', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateMCPToken(id: string, data: UpdateMCPTokenRequest): Promise<MCPToken> {
+    const response = await this.request<{ token: MCPToken }>(`/admin/mcp/tokens/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return response.token;
+  }
+
+  async deleteMCPToken(id: string): Promise<void> {
+    await this.request(`/admin/mcp/tokens/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getMCPTokenActivity(id: string, limit = 50, offset = 0): Promise<MCPActivityResponse> {
+    return this.request<MCPActivityResponse>(
+      `/admin/mcp/tokens/${id}/activity?limit=${limit}&offset=${offset}`
+    );
+  }
 }
 
 // Types
@@ -530,6 +579,60 @@ export interface TelegramTestResponse {
   valid: boolean;
   bot_name?: string;
   error?: string;
+}
+
+// MCP Types
+export interface MCPToken {
+  id: string;
+  name: string;
+  token_prefix: string;
+  granted_projects: string; // "*" or JSON array of project IDs
+  expires_at?: string;
+  is_active: boolean;
+  created_by: string;
+  last_used_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateMCPTokenRequest {
+  name: string;
+  granted_projects: string[]; // Array of project IDs or ["*"]
+  expires_in_days?: number | null; // null or undefined for permanent
+}
+
+export interface CreateMCPTokenResponse {
+  token: string; // Full MCP token (shown only once)
+}
+
+export interface UpdateMCPTokenRequest {
+  name?: string;
+  granted_projects?: string[]; // Array of project IDs or ["*"]
+  expires_in_days?: number | null; // null or undefined for permanent
+  is_active?: boolean;
+}
+
+export interface MCPActivityLog {
+  id: string;
+  token_id: string;
+  tool_name: string;
+  project_ids: string[]; // Array of project IDs
+  request_params: Record<string, any>; // JSON object
+  success: boolean;
+  error_message: string;
+  duration_ms: number;
+  created_at: string;
+}
+
+export interface MCPActivityResponse {
+  activities: MCPActivityLog[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface MCPStatusResponse {
+  enabled: boolean;
 }
 
 export const api = new ApiClient();

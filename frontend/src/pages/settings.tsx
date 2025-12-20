@@ -16,6 +16,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Shield, ShieldCheck, ShieldOff, Copy, Key, RefreshCw, Info, Download, CheckCircle, ExternalLink } from 'lucide-react';
 import QRCode from 'qrcode';
+import { MCPServerSection } from '@/components/mcp/MCPServerSection';
 
 export function SettingsPage() {
   const { user, refreshUser } = useAuth();
@@ -403,6 +404,13 @@ export function SettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* MCP Server Section */}
+        {user?.role === 'ADMIN' && (
+          <div className="md:col-span-2">
+            <MCPServerSection />
+          </div>
+        )}
 
         {/* Version Info Card */}
         <Card className="md:col-span-2">

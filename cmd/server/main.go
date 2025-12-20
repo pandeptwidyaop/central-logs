@@ -12,6 +12,7 @@ import (
 	"central-logs/internal/database"
 	"central-logs/internal/database/migrations"
 	"central-logs/internal/handlers"
+	"central-logs/internal/mcp"
 	"central-logs/internal/middleware"
 	"central-logs/internal/models"
 	"central-logs/internal/queue"
@@ -72,6 +73,8 @@ func main() {
 	logRepo := models.NewLogRepository(db.DB)
 	channelRepo := models.NewChannelRepository(db.DB)
 	subscriptionRepo := models.NewPushSubscriptionRepository(db.DB)
+	mcpTokenRepo := models.NewMCPTokenRepository(db.DB)
+	mcpActivityRepo := models.NewMCPActivityLogRepository(db.DB)
 
 	// Create initial admin user if no users exist
 	if err := createInitialAdmin(userRepo, cfg); err != nil {
@@ -99,7 +102,10 @@ func main() {
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
 
-	wsHandler := websocket.NewHandler(wsHub)
+	wsHandler := websocket.NewHandler(wsHub, jwtManager, userRepo)
+
+	// Initialize MCP server state
+	mcpEnabled := false
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(userRepo, jwtManager)
@@ -113,6 +119,11 @@ func main() {
 	pushHandler := handlers.NewPushHandler(subscriptionRepo, cfg)
 	versionHandler := handlers.NewVersionHandler(Version)
 	telegramHandler := handlers.NewTelegramHandler(cfg)
+	mcpTokenHandler := handlers.NewMCPTokenHandler(mcpTokenRepo, mcpActivityRepo, projectRepo)
+	mcpSettingsHandler := handlers.NewMCPSettingsHandler(&mcpEnabled)
+
+	// Initialize MCP server
+	mcpServer := mcp.NewMCPServer(mcpTokenRepo, mcpActivityRepo, logRepo, projectRepo, userRepo)
 
 	// Initialize notification workers (if Redis is available)
 	var notificationConsumer *worker.NotificationConsumer
@@ -143,11 +154,17 @@ func main() {
 	app.Use(logger.New(logger.Config{
 		Format: "${time} | ${status} | ${latency} | ${ip} | ${method} | ${path}\n",
 	}))
+
+	// Security headers middleware
+	app.Use(middleware.SecurityHeaders())
+
+	// CORS middleware with environment-based configuration
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "*",
+		AllowOrigins:     cfg.Server.AllowOrigins,
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
 		AllowHeaders:     "Origin,Content-Type,Accept,Authorization,X-API-Key",
 		AllowCredentials: false,
+		MaxAge:           3600,
 	}))
 
 	// API routes
@@ -246,6 +263,28 @@ func main() {
 	telegram.Post("/chats", telegramHandler.GetRecentChats)
 	telegram.Post("/test", telegramHandler.TestBotToken)
 
+	// MCP routes (admin only)
+	mcpManagement := admin.Group("/mcp", authMiddleware.RequireAdmin())
+	mcpManagement.Get("/status", mcpSettingsHandler.GetMCPStatus)
+	mcpManagement.Post("/toggle", mcpSettingsHandler.ToggleMCP)
+	mcpManagement.Get("/tokens", mcpTokenHandler.ListTokens)
+	mcpManagement.Post("/tokens", mcpTokenHandler.CreateToken)
+	mcpManagement.Get("/tokens/:id", mcpTokenHandler.GetToken)
+	mcpManagement.Put("/tokens/:id", mcpTokenHandler.UpdateToken)
+	mcpManagement.Delete("/tokens/:id", mcpTokenHandler.DeleteToken)
+	mcpManagement.Get("/tokens/:id/activity", mcpTokenHandler.GetTokenActivity)
+
+	// MCP server endpoint (MCP token auth)
+	// Note: Tool handlers will be implemented in Phase 4
+	api.Post("/mcp/message", func(c *fiber.Ctx) error {
+		if !mcpEnabled {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+				"error": "MCP server is not enabled",
+			})
+		}
+		return mcpServer.HandleFiberRequest(c)
+	})
+
 	// Push notification routes
 	push := api.Group("/push")
 	push.Get("/vapid-key", pushHandler.GetVAPIDPublicKey) // Public - get VAPID key
@@ -255,9 +294,9 @@ func main() {
 	pushProtected.Get("/subscriptions", pushHandler.ListSubscriptions)
 	pushProtected.Post("/test", pushHandler.TestNotification)
 
-	// WebSocket routes for real-time logs
+	// WebSocket routes for real-time logs (with authentication)
 	app.Use("/ws", wsHandler.Upgrade())
-	app.Get("/ws/logs", wsHandler.HandleLogs())
+	app.Get("/ws/logs", wsHandler.AuthMiddleware(), wsHandler.HandleLogs())
 
 	// Serve embedded frontend (SPA)
 	frontendFS, err := web.GetFileSystem()

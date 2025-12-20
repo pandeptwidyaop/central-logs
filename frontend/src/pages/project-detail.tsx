@@ -54,6 +54,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
+import { useRealtimeLogs } from '@/hooks/use-realtime-logs';
 import { useAuth } from '@/contexts/auth-context';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
@@ -129,6 +130,18 @@ export function ProjectDetailPage() {
     unsubscribe: unsubscribeBrowser,
     isSupported: isPushSupported,
   } = usePushNotifications();
+
+  // Setup realtime logs for this project
+  useRealtimeLogs({
+    projectId: id,
+    enabled: true,
+    playSound: false, // Don't play sound on project page
+    showToast: false, // Don't show toast on project page
+    onNewLog: (log) => {
+      // Prepend new log and keep only last 10
+      setLogs((prevLogs) => [log, ...prevLogs].slice(0, 10));
+    },
+  });
 
   const fetchProject = useCallback(async () => {
     if (!id) return;

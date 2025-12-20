@@ -1,3 +1,43 @@
+# [2.0.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.6.0...v2.0.0) (2025-12-20)
+
+
+* feat!: improve WebSocket authentication with header-based tokens ([018e702](https://github.com/pandeptwidyaop/central-logs/commit/018e70209b2dd1c7a42e8c75f3add0ba5f4a944e))
+
+
+### BREAKING CHANGES
+
+* WebSocket authentication method changed from query parameters to Sec-WebSocket-Protocol header for improved security.
+
+Migration required for v1.x users:
+- Frontend must use new WebSocket(url, ['token', jwtToken]) instead of query params
+- Removed user_id from WebSocket URLs (no longer exposed in logs/URLs)
+- Updated auth-context to expose JWT token for WebSocket connections
+- See docs/MIGRATION-v2.0.0.md for complete migration guide
+
+Features Added:
+- WebSocket authentication via Sec-WebSocket-Protocol (RFC 6455 compliant)
+- Realtime log updates on dashboard, logs page, and project detail pages
+- MCP (Model Context Protocol) server integration for AI agents
+- Security improvements: environment-based CORS, constant-time token comparison
+- Security headers middleware (CSP, X-Frame-Options, etc.)
+- Comprehensive documentation: migration guide and MCP usage guide
+
+Security Improvements:
+- No token exposure in URLs or server logs
+- No user ID exposure in WebSocket connections
+- Constant-time comparison for API keys and MCP tokens
+- Environment-based CORS configuration for production
+- Added security headers for XSS/clickjacking protection
+
+Documentation:
+- docs/MIGRATION-v2.0.0.md - Migration guide from v1.x to v2.0.0
+- docs/MCP-USAGE-GUIDE.md - Complete MCP integration guide
+- docs/security-improvements.md - Security enhancements documentation
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+
 # [1.6.0](https://github.com/pandeptwidyaop/central-logs/compare/v1.5.0...v1.6.0) (2025-12-19)
 
 
